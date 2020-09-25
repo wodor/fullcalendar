@@ -90,17 +90,56 @@ const configuration_workflow = () =>
                 },
               },
               {
-                name: "start_field",
-                label: "Start time field",
+                name: "title_field",
+                label: "Title field",
                 type: "String",
-                sublabel:
-                  "The table needs a fields of type 'Date' to track start times.",
+                sublabel: "Event label",
                 required: true,
                 attributes: {
                   options: fields
-                    .filter((f) => f.type.name === "Date")
+                    .filter((f) => f.type.name === "String")
                     .map((f) => f.name)
                     .join(),
+                },
+              },
+              {
+                name: "allday_field",
+                label: "All day field",
+                type: "String",
+                sublabel:
+                  "The table can supply a fields of type 'Bool' to denote all-day events (overrides duration).",
+                required: false,
+                attributes: {
+                  options: fields
+                    .filter((f) => f.type.name === "Bool")
+                    .map((f) => f.name)
+                    .join(),
+                },
+              },
+              {
+                name: "duration_field",
+                label: "Duration field",
+                type: "String",
+                sublabel:
+                  "A fields of type 'Int' or 'Float' to denote duration.",
+                required: true,
+                attributes: {
+                  options: fields
+                    .filter(
+                      (f) => f.type.name === "Int" || f.type.name === "Float"
+                    )
+                    .map((f) => f.name)
+                    .join(),
+                },
+              },
+              {
+                name: "duration_units",
+                label: "Duration units",
+                type: "String",
+                sublabel: "Units of duration field",
+                required: true,
+                attributes: {
+                  options: "Seconds,Minutes,Hours,Days",
                 },
               },
             ],
@@ -118,18 +157,22 @@ const get_state_fields = async (table_id, viewname, { show_view }) => {
     return sf;
   });
 };
-
+const addSeconds = (d, secs) => {
+  const r = new Date(d);
+  r.setSeconds(r.getSeconds() + r);
+  return r;
+};
 const run = async (
   table_id,
   viewname,
   {
-    show_view,
-    column_field,
     view_to_create,
     expand_view,
-    column_order,
-    position_field,
-    reload_on_drag,
+    start_field,
+    allday_field,
+    duration_field,
+    duration_units,
+    title_field,
   },
   state,
   extraArgs
@@ -140,13 +183,30 @@ const run = async (
   const qstate = await stateFieldsToWhere({ fields, state });
   const rows = await table.getRows(qstate);
   const id = `cal${Math.round(Math.random() * 100000)}`;
+  const unitSecs =
+    duration_units === "Seconds"
+      ? 1
+      : duration_units === "Minutes"
+      ? 60
+      : duration_units === "Days"
+      ? 24 * 60 * 60
+      : 60 * 60;
+  const events = rows.map((row) => {
+    const start = row[start_field];
+    const allDay = row[allday_field];
 
+    const end = allDay
+      ? undefined
+      : addSeconds(start, row[duration_field] * unitSecs);
+    return { title: row[title_field], start, allDay, end };
+  });
   return div(
     script(
       domReady(`
   var calendarEl = document.getElementById('${id}');
   var calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: 'dayGridMonth'
+    initialView: 'dayGridMonth',
+    events: ${JSON.stringify(events)}
   });
   calendar.render();`)
     ),
