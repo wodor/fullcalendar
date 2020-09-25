@@ -1,0 +1,12 @@
+{
+  "name": "@saltcorn/fullcalendar",
+  "version": "0.1.0",
+  "description": "Calendar view plugin",
+  "main": "index.js",
+  "dependencies": {
+    "@saltcorn/markup": "^0.2.0",
+    "@saltcorn/data": "^0.2.0"
+  },
+  "author": "Tom Nielsen",
+  "license": "MIT"
+}
