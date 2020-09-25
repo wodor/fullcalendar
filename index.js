@@ -110,10 +110,12 @@ const configuration_workflow = () =>
                   "The table can supply a fields of type 'Bool' to denote all-day events (overrides duration).",
                 required: false,
                 attributes: {
-                  options: fields
-                    .filter((f) => f.type.name === "Bool")
-                    .map((f) => f.name)
-                    .join(),
+                  options: [
+                    ...fields
+                      .filter((f) => f.type.name === "Bool")
+                      .map((f) => f.name),
+                    "Always",
+                  ].join(),
                 },
               },
               {
@@ -122,7 +124,7 @@ const configuration_workflow = () =>
                 type: "String",
                 sublabel:
                   "A fields of type 'Int' or 'Float' to denote duration.",
-                required: true,
+                required: false,
                 attributes: {
                   options: fields
                     .filter(
@@ -193,7 +195,7 @@ const run = async (
       : 60 * 60;
   const events = rows.map((row) => {
     const start = row[start_field];
-    const allDay = row[allday_field];
+    const allDay = allday_field === "Always" || row[allday_field];
 
     const end = allDay
       ? undefined
