@@ -195,7 +195,10 @@ const run = async (
       : 60 * 60;
   const events = rows.map((row) => {
     const start = row[start_field];
-    const allDay = allday_field === "Always" || row[allday_field];
+    const allDay =
+      allday_field === "Always" ||
+      row[allday_field] ||
+      typeof row[duration_field] === "undefined";
 
     const end = allDay
       ? undefined
@@ -211,8 +214,20 @@ const run = async (
     headerToolbar: {
       left: 'dayGridMonth,timeGridWeek',
       center: 'title',
-      right: 'prev,next'
+      right: '${view_to_create ? "add " : ""}prev,next'
     },
+    ${
+      view_to_create
+        ? `customButtons: {
+      add: {
+        text: 'Add',
+        click: function() {
+          location.href='/view/${view_to_create}';
+        }
+      }
+    },`
+        : ""
+    }
     events: ${JSON.stringify(events)}
   });
   calendar.render();`)
