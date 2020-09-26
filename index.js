@@ -207,7 +207,11 @@ const run = async (
       domReady(`
   var calendarEl = document.getElementById('${id}');
   var calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: 'dayGridMonth',
+    headerToolbar: {
+      left: 'dayGridMonth,timeGridWeek',
+      center: 'title',
+      right: 'prev,next'
+    },
     events: ${JSON.stringify(events)}
   });
   calendar.render();`)
