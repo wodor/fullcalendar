@@ -200,7 +200,8 @@ const run = async (
     const end = allDay
       ? undefined
       : addSeconds(start, row[duration_field] * unitSecs);
-    return { title: row[title_field], start, allDay, end };
+    const url = expand_view ? `/view/${expand_view}?id=${row.id}` : undefined;
+    return { title: row[title_field], start, allDay, end, url };
   });
   return div(
     script(
