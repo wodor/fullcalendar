@@ -225,6 +225,9 @@ const run = async (
           location.href='/view/${view_to_create}';
         }
       }
+    },
+    dateClick: function(info) {
+      location.href='/view/${view_to_create}?${start_field}='+encodeURIComponent(info.dateStr);
     },`
         : ""
     }
