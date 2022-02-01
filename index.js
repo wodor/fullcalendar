@@ -212,7 +212,7 @@ const run = async (
   var calendarEl = document.getElementById('${id}');
   var calendar = new FullCalendar.Calendar(calendarEl, {
     headerToolbar: {
-      left: 'dayGridMonth,timeGridWeek',
+      left: 'dayGridMonth,timeGridWeek,listMonth',
       center: 'title',
       right: '${view_to_create ? "add " : ""}prev,next'
     },
