@@ -60,6 +60,7 @@ const configuration_workflow = () =>
               {
                 name: "expand_view",
                 label: "Expand View",
+                sublabel: "The view that opens when the user clicks on an event.",
                 type: "String",
                 required: false,
                 attributes: {
@@ -93,7 +94,7 @@ const configuration_workflow = () =>
                 name: "title_field",
                 label: "Title field",
                 type: "String",
-                sublabel: "Event label",
+                sublabel: "Event label displayed on the calendar.",
                 required: true,
                 attributes: {
                   options: fields
@@ -123,7 +124,7 @@ const configuration_workflow = () =>
                 label: "Duration field",
                 type: "String",
                 sublabel:
-                  "A fields of type 'Int' or 'Float' to denote duration.",
+                  "A fields of type 'Int' or 'Float' to denote the duration of the event.",
                 required: false,
                 attributes: {
                   options: fields
