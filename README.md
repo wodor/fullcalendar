@@ -4,7 +4,7 @@ Calendar plugin based on FullCalendar
 ## How to use
 This plugin creates a new viewtemplate which displays a calendar.
 
-First, you will need a table for your calendar events. It will need several fields:
+You will need a table for your events. It will need several fields:
 
 | Purpose | Type | Required |
 |-|-|-|
