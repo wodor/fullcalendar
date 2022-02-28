@@ -242,12 +242,12 @@ const run = async (
 
 const headers = [
   {
-    script: "https://cdn.jsdelivr.net/npm/fullcalendar@5.3.2/main.min.js",
-    integrity: "sha256-mMw9aRRFx9TK/L0dn25GKxH/WH7rtFTp+P9Uma+2+zc=",
+    script: "https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.js",
+    integrity: "sha256-YicH/8aE660iEnJtgll3vT54dJApy3XkYmqNfGVFEzA=",
   },
   {
-    css: "https://cdn.jsdelivr.net/npm/fullcalendar@5.3.2/main.min.css",
-    integrity: "sha256-uq9PNlMzB+1h01Ij9cx7zeE2OR2pLAfRw3uUUOOPKdA=",
+    css: "https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.css",
+    integrity: "sha256-5veQuRbWaECuYxwap/IOE/DAwNxgm4ikX7nrgsqYp88=",
   },
 ];
 
