@@ -1,5 +1,5 @@
 # fullcalendar
-Calendar plugin based on [https://fullcalendar.io/](FullCalendar). For further documentation: https://fullcalendar.io/docs.
+Calendar plugin based on [FullCalendar](https://fullcalendar.io/). For further documentation: https://fullcalendar.io/docs.
 
 ## Setup
 This plugin creates a new viewtemplate which displays a calendar.
