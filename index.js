@@ -213,15 +213,15 @@ const run = async (
   var calendarEl = document.getElementById('${id}');
   var calendar = new FullCalendar.Calendar(calendarEl, {
     headerToolbar: {
-      left: 'dayGridMonth,timeGridWeek,listMonth',
+      left: 'prev,next today${view_to_create ? " add" : ""}',
       center: 'title',
-      right: '${view_to_create ? "add " : ""}prev,next'
+      right: 'dayGridMonth,timeGridWeek,listMonth'
     },
     ${
       view_to_create
         ? `customButtons: {
       add: {
-        text: 'Add',
+        text: 'add',
         click: function() {
           location.href='/view/${view_to_create}';
         }
