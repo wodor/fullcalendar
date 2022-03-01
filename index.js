@@ -153,6 +153,14 @@ const configuration_workflow = () =>
                 required: true,
                 default: true,
               },
+              {
+                name: "weekNumbers",
+                type: "Bool",
+                label: "Week numbers",
+                sublabel: "Display week numbers on the calendar",
+                required: true,
+                default: false,
+              },
             ],
           });
         },
@@ -185,6 +193,7 @@ const run = async (
     duration_units,
     title_field,
     nowIndicator,
+    weekNumbers,
   },
   state,
   extraArgs
@@ -227,6 +236,7 @@ const run = async (
       right: 'dayGridMonth,timeGridWeek,listMonth'
     },
     nowIndicator: ${nowIndicator},
+    weekNumbers: ${weekNumbers},
     ${
       view_to_create
         ? `customButtons: {
