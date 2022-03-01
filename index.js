@@ -145,6 +145,14 @@ const configuration_workflow = () =>
                   options: "Seconds,Minutes,Hours,Days",
                 },
               },
+              {
+                name: "nowIndicator",
+                type: "Bool",
+                label: "Current time indicator",
+                sublabel: "Display a line to indicate the current time on day and week views",
+                required: true,
+                default: true,
+              },
             ],
           });
         },
@@ -176,6 +184,7 @@ const run = async (
     duration_field,
     duration_units,
     title_field,
+    nowIndicator,
   },
   state,
   extraArgs
@@ -217,6 +226,7 @@ const run = async (
       center: 'title',
       right: 'dayGridMonth,timeGridWeek,listMonth'
     },
+    nowIndicator: ${nowIndicator},
     ${
       view_to_create
         ? `customButtons: {
@@ -257,6 +267,7 @@ module.exports = {
   viewtemplates: [
     {
       name: "Calendar",
+      description: "Displays items on a calendar, with options for month, week, agenda, and others.",
       display_state_form: false,
       get_state_fields,
       configuration_workflow,

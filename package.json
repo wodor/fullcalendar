@@ -8,5 +8,6 @@
     "@saltcorn/data": "^0.2.0"
   },
   "author": "Tom Nielsen",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": "github:saltcorn/fullcalendar"
 }
