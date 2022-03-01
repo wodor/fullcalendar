@@ -70,7 +70,7 @@ const configuration_workflow = () =>
               {
                 name: "view_to_create",
                 label: "Use view to create",
-                sublabel: "Leave blank to have no link to create a new item",
+                sublabel: "View to create a new event. Leave blank to have no link to create a new item",
                 type: "String",
                 attributes: {
                   options: create_view_opts.join(),
@@ -81,7 +81,7 @@ const configuration_workflow = () =>
                 label: "Start time field",
                 type: "String",
                 sublabel:
-                  "The table needs a fields of type 'Date' to track start times.",
+                  "A date field for when the event starts.",
                 required: true,
                 attributes: {
                   options: fields
@@ -94,7 +94,7 @@ const configuration_workflow = () =>
                 name: "title_field",
                 label: "Title field",
                 type: "String",
-                sublabel: "Event label displayed on the calendar.",
+                sublabel: "A string for the event name displayed on the calendar.",
                 required: true,
                 attributes: {
                   options: fields
@@ -105,10 +105,10 @@ const configuration_workflow = () =>
               },
               {
                 name: "allday_field",
-                label: "All day field",
+                label: "All-day field",
                 type: "String",
                 sublabel:
-                  "The table can supply a fields of type 'Bool' to denote all-day events (overrides duration).",
+                  "Boolean to specify whether this is an all-day event (overrides duration).",
                 required: false,
                 attributes: {
                   options: [
@@ -124,7 +124,7 @@ const configuration_workflow = () =>
                 label: "Duration field",
                 type: "String",
                 sublabel:
-                  "A fields of type 'Int' or 'Float' to denote the duration of the event.",
+                  "A field of type 'Int' or 'Float' to denote the duration of the event.",
                 required: false,
                 attributes: {
                   options: fields
