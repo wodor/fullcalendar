@@ -1,3 +1,5 @@
+/*jshint esversion: 8 */
+
 const Field = require("@saltcorn/data/models/field");
 const Table = require("@saltcorn/data/models/table");
 const Form = require("@saltcorn/data/models/form");
@@ -31,7 +33,8 @@ const configuration_workflow = () =>
   new Workflow({
     steps: [
       {
-        name: "views",
+        name: "Event Configuration",
+        blurb: "Attributes of the events to be displayed on the calendar.",
         form: async (context) => {
           const table = await Table.findOne({ id: context.table_id });
           const fields = await table.getFields();
@@ -50,49 +53,12 @@ const configuration_workflow = () =>
               state_fields.every((sf) => !sf.required)
           );
           const create_view_opts = create_views.map((v) => v.name);
-          // is all day
-          // duration
-          // duration units - minutes, hours, days
-          // create new view
 
           return new Form({
             fields: [
               {
-                name: "expand_view",
-                label: "Expand View",
-                sublabel: "The view that opens when the user clicks on an event.",
-                type: "String",
-                required: false,
-                attributes: {
-                  options: expand_view_opts.join(),
-                },
-              },
-              {
-                name: "view_to_create",
-                label: "Use view to create",
-                sublabel: "View to create a new event. Leave blank to have no link to create a new item",
-                type: "String",
-                attributes: {
-                  options: create_view_opts.join(),
-                },
-              },
-              {
-                name: "start_field",
-                label: "Start time field",
-                type: "String",
-                sublabel:
-                  "A date field for when the event starts.",
-                required: true,
-                attributes: {
-                  options: fields
-                    .filter((f) => f.type.name === "Date")
-                    .map((f) => f.name)
-                    .join(),
-                },
-              },
-              {
                 name: "title_field",
-                label: "Title field",
+                label: "Event title field",
                 type: "String",
                 sublabel: "A string for the event name displayed on the calendar.",
                 required: true,
@@ -104,11 +70,23 @@ const configuration_workflow = () =>
                 },
               },
               {
+                name: "start_field",
+                label: "Start time field",
+                type: "String",
+                sublabel: "A date field for when the event starts.",
+                required: true,
+                attributes: {
+                  options: fields
+                    .filter((f) => f.type.name === "Date")
+                    .map((f) => f.name)
+                    .join(),
+                },
+              },
+              {
                 name: "allday_field",
                 label: "All-day field",
                 type: "String",
-                sublabel:
-                  "Boolean to specify whether this is an all-day event (overrides duration).",
+                sublabel: "Boolean field to specify whether this is an all-day event (overrides duration).",
                 required: false,
                 attributes: {
                   options: [
@@ -146,6 +124,46 @@ const configuration_workflow = () =>
                 },
               },
               {
+                name: "expand_view",
+                label: "Expand View",
+                sublabel: "The view that opens when the user clicks on an event.",
+                type: "String",
+                required: false,
+                attributes: {
+                  options: expand_view_opts.join(),
+                },
+              },
+              {
+                name: "view_to_create",
+                label: "Use view to create",
+                sublabel: "View to create a new event. Leave blank to have no link to create a new item",
+                type: "String",
+                attributes: {
+                  options: create_view_opts.join(),
+                },
+              },
+            ],
+          });
+        },
+      },
+      {
+        name: "Calendar Configuration",
+        blurb: "Attributes of the calendar itself.",
+        form: async (context) => {
+          return new Form({
+            fields: [
+              {
+                name: "initialView",
+                type: "String",
+                label: "Initial calendar view",
+                sublabel: "The default calendar view shown when the calendar is loaded.",
+                required: true,
+                default: "dayGridMonth",
+                attributes: {
+                  options: "dayGridMonth,dayGridDay,dayGridWeek,timeGridWeek,timeGridDay,listDay,listWeek,listMonth,listYear",
+                },
+              },
+              {
                 name: "nowIndicator",
                 type: "Bool",
                 label: "Current time indicator",
@@ -161,6 +179,14 @@ const configuration_workflow = () =>
                 required: true,
                 default: false,
               },
+              {
+                name: "default_event_color",
+                type: "String",
+                label: "Default event color",
+                sublabel: "The default color of calendar events. Accepts any valid CSS color value. Examples: #af2d8b, rgb(124, 0, 201), RoyalBlue.",
+                required: true,
+                default: "",
+              }
             ],
           });
         },
@@ -194,6 +220,8 @@ const run = async (
     title_field,
     nowIndicator,
     weekNumbers,
+    initialView,
+    default_event_color,
   },
   state,
   extraArgs
@@ -235,11 +263,12 @@ const run = async (
       center: 'title',
       right: 'dayGridMonth,timeGridWeek,listMonth'
     },
+    initialView: ${initialView},
     nowIndicator: ${nowIndicator},
     weekNumbers: ${weekNumbers},
-    ${
-      view_to_create
-        ? `customButtons: {
+    eventColor: ${default_event_color},
+    ${view_to_create ? `
+    customButtons: {
       add: {
         text: 'add',
         click: function() {
@@ -249,9 +278,7 @@ const run = async (
     },
     dateClick: function(info) {
       location.href='/view/${view_to_create}?${start_field}='+encodeURIComponent(info.dateStr);
-    },`
-        : ""
-    }
+    },` : "" }
     events: ${JSON.stringify(events)}
   });
   calendar.render();`)
