@@ -172,7 +172,7 @@ const configuration_workflow = () =>
                 name: "custom_calendar_views",
                 type: "String",
                 label: "Advanced: Custom calendar views",
-                sublabel: "Optionally define your own custom calendar views. Provide a FullCalendar views object. See https://fullcalendar.io/docs/custom-view-with-settings.",
+                sublabel: "Optionally define your own custom calendar views. Provide a FullCalendar views object. See https://github.com/saltcorn/fullcalendar/blob/main/README.md.",
                 required: false,
                 input_type: "code",
                 attributes: { mode: "application/javascript" },
