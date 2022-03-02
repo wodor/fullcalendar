@@ -156,12 +156,26 @@ const configuration_workflow = () =>
                 name: "initialView",
                 type: "String",
                 label: "Initial calendar view",
-                sublabel: "The default calendar view shown when the calendar is loaded.",
+                sublabel: "The default calendar view shown when the calendar is loaded. Options: dayGridMonth,dayGridDay,dayGridWeek,timeGridWeek,timeGridDay,listDay,listWeek,listMonth,listYear. Default: 'dayGridMonth'.",
                 required: true,
                 default: "dayGridMonth",
-                attributes: {
-                  options: "dayGridMonth,dayGridDay,dayGridWeek,timeGridWeek,timeGridDay,listDay,listWeek,listMonth,listYear",
-                },
+              },
+              {
+                name: "calendar_view_options",
+                type: "String",
+                label: "Calendar view options",
+                sublabel: "The view options displayed on the calendar. Separate the options with a comma for a button group, or with a space for separate buttons. Accepts the same options as above. Default: 'dayGridMonth,timeGridWeek,listMonth'.",
+                required: true,
+                default: "dayGridMonth,timeGridWeek,listMonth",
+              },
+              {
+                name: "custom_calendar_views",
+                type: "String",
+                label: "Advanced: Custom calendar views",
+                sublabel: "Optionally define your own custom calendar views. Provide a FullCalendar views object. See https://fullcalendar.io/docs/custom-view-with-settings.",
+                required: false,
+                input_type: "code",
+                attributes: { mode: "application/javascript" },
               },
               {
                 name: "nowIndicator",
@@ -185,8 +199,8 @@ const configuration_workflow = () =>
                 label: "Default event color",
                 sublabel: "The default color of calendar events. Accepts any valid CSS color value. Examples: #af2d8b, rgb(124, 0, 201), RoyalBlue.",
                 required: true,
-                default: "",
-              }
+                default: "#4e73df",
+              },
             ],
           });
         },
@@ -222,6 +236,8 @@ const run = async (
     weekNumbers,
     initialView,
     default_event_color,
+    calendar_view_options,
+    custom_calendar_views,
   },
   state,
   extraArgs
@@ -261,9 +277,10 @@ const run = async (
     headerToolbar: {
       left: 'prev,next today${view_to_create ? " add" : ""}',
       center: 'title',
-      right: 'dayGridMonth,timeGridWeek,listMonth'
+      right: '${calendar_view_options}',
     },
     initialView: ${initialView},
+    ${custom_calendar_views ? custom_calendar_views : ""},
     nowIndicator: ${nowIndicator},
     weekNumbers: ${weekNumbers},
     eventColor: ${default_event_color},
