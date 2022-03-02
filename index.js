@@ -281,8 +281,8 @@ const run = async (
     },
     initialView: '${initialView}',
     ${custom_calendar_views ? custom_calendar_views + "," : ""}
-    nowIndicator: '${nowIndicator}',
-    weekNumbers: '${weekNumbers}',
+    nowIndicator: ${nowIndicator},
+    weekNumbers: ${weekNumbers},
     eventColor: '${default_event_color}',
     ${view_to_create ? `
     customButtons: {
