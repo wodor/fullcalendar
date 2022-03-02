@@ -280,7 +280,7 @@ const run = async (
       right: '${calendar_view_options}',
     },
     initialView: ${initialView},
-    ${custom_calendar_views ? custom_calendar_views : ""},
+    ${custom_calendar_views ? custom_calendar_views + "," : ""}
     nowIndicator: ${nowIndicator},
     weekNumbers: ${weekNumbers},
     eventColor: ${default_event_color},
