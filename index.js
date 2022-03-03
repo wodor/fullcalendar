@@ -71,7 +71,7 @@ const configuration_workflow = () =>
               },
               {
                 name: "start_field",
-                label: "Start time field",
+                label: "Start field",
                 type: "String",
                 sublabel: "A date field for when the event starts.",
                 required: true,
@@ -86,25 +86,25 @@ const configuration_workflow = () =>
                 name: "end_field",
                 label: "End field",
                 type: "String",
-                sublabel:
-                  "A field of type 'Date' to denote the end of the event.",
-                required: true,
+                sublabel: "A date field for when the event ends.",
+                required: false,
                 attributes: {
                   options: fields
                     .filter((f) => f.type.name === "Date")
                     .map((f) => f.name)
                     .join(),
                 },
+                showIf: {switch_to_duration: false},
               },
               {
                 name: "duration_field",
                 label: "Duration",
                 type: "String",
                 sublabel: "An 'Int' or 'Float' field for the duration of the event.",
-                required: true,
+                required: false,
                 attributes: {
                   options: fields
-                    .filter((f) => f.type.name === "Int" || f.type.name === "Int")
+                    .filter((f) => f.type.name === "Int" || f.type.name === "Float")
                     .map((f) => f.name)
                     .join(),
                 },
@@ -115,7 +115,7 @@ const configuration_workflow = () =>
                 label: "Duration units",
                 type: "String",
                 sublabel: "Units of duration field",
-                required: true,
+                required: false,
                 attributes: {
                   options: "Seconds,Minutes,Hours,Days",
                 },
@@ -124,14 +124,14 @@ const configuration_workflow = () =>
               {
                 name: "switch_to_duration",
                 label: "Use duration instead",
-                sublabel: "Use an duration instead of an end date",
+                sublabel: "Use an event duration instead of an end date",
                 type: "Bool",
                 required: true,
               },
               {
                 name: "allday_field",
-                label: "All-day field",
                 type: "String",
+                label: "All-day field",
                 sublabel: "Boolean field to specify whether this is an all-day event.",
                 required: false,
                 attributes: {
@@ -141,6 +141,19 @@ const configuration_workflow = () =>
                       .map((f) => f.name),
                     "Always",
                   ].join(),
+                },
+              },
+              {
+                name: "event_color",
+                type: "String",
+                label: "Event Color",
+                sublabel: "A 'Color' field to set the color of this event.",
+                required: false,
+                attributes: {
+                  options: fields
+                    .filter((f) => f.type.name === "Color")
+                    .map((f) => f.name)
+                    .join(),
                 },
               },
               {
@@ -260,6 +273,7 @@ const run = async (
     default_event_color,
     calendar_view_options,
     custom_calendar_views,
+    event_color,
   },
   state,
   extraArgs
@@ -282,15 +296,15 @@ const run = async (
       : 60 * 60;
   const events = rows.map((row) => { //create the event objects
 
-    const start = row[start_field]; //start = start field
-    const allDay = (allday_field === "Always") || row[allday_field]; //if allday field is "always", allday=true, otherwise use value
-
     const duration_in_seconds = row[duration_field] * unitSecs; //duration in seconds = duration * unit
     const end_by_duration = addSeconds(row[start_field], duration_in_seconds); //add duration in seconds to start time
 
+    const start = row[start_field]; //start = start field
+    const allDay = (allday_field === "Always") || row[allday_field]; //if allday field is "always", allday=true, otherwise use value
     const end = switch_to_duration ? end_by_duration : row[end_field]; // if using duration, show end by duration. otherwise, use end field value.
-
     const url = expand_view ? `/view/${expand_view}?id=${row.id}` : undefined; //url to go to when the event is clicked
+    const color = row[event_color];
+
     return {
       title: row[title_field],
       start,
