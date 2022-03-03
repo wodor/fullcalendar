@@ -68,6 +68,7 @@ const configuration_workflow = () =>
                     .map((f) => f.name)
                     .join(),
                 },
+                input_type: "select",
               },
               {
                 name: "start_field",
@@ -81,6 +82,7 @@ const configuration_workflow = () =>
                     .map((f) => f.name)
                     .join(),
                 },
+                input_type: "select",
               },
               {
                 name: "end_field",
@@ -95,6 +97,7 @@ const configuration_workflow = () =>
                     .join(),
                 },
                 showIf: {switch_to_duration: false},
+                input_type: "select",
               },
               {
                 name: "duration_field",
@@ -109,6 +112,7 @@ const configuration_workflow = () =>
                     .join(),
                 },
                 showIf: {switch_to_duration: true},
+                input_type: "select",
               },
               {
                 name: "duration_units",
@@ -120,6 +124,7 @@ const configuration_workflow = () =>
                   options: "Seconds,Minutes,Hours,Days",
                 },
                 showIf: {switch_to_duration: true},
+                input_type: "select",
               },
               {
                 name: "switch_to_duration",
@@ -142,6 +147,7 @@ const configuration_workflow = () =>
                     "Always",
                   ].join(),
                 },
+                input_type: "select",
               },
               {
                 name: "event_color",
@@ -155,6 +161,7 @@ const configuration_workflow = () =>
                     .map((f) => f.name)
                     .join(),
                 },
+                input_type: "select",
               },
               {
                 name: "expand_view",
@@ -165,6 +172,7 @@ const configuration_workflow = () =>
                 attributes: {
                   options: expand_view_opts.join(),
                 },
+                input_type: "select",
               },
               {
                 name: "view_to_create",
@@ -174,6 +182,7 @@ const configuration_workflow = () =>
                 attributes: {
                   options: create_view_opts.join(),
                 },
+                input_type: "select",
               },
             ],
           });
