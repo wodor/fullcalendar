@@ -83,21 +83,6 @@ const configuration_workflow = () =>
                 },
               },
               {
-                name: "allday_field",
-                label: "All-day field",
-                type: "String",
-                sublabel: "Boolean field to specify whether this is an all-day event (overrides duration).",
-                required: false,
-                attributes: {
-                  options: [
-                    ...fields
-                      .filter((f) => f.type.name === "Bool")
-                      .map((f) => f.name),
-                    "Always",
-                  ].join(),
-                },
-              },
-              {
                 name: "end_field",
                 label: "End field",
                 type: "String",
@@ -112,6 +97,20 @@ const configuration_workflow = () =>
                 },
               },
               {
+                name: "duration",
+                label: "Duration",
+                type: "String",
+                sublabel: "An 'Int' or 'Float' field for the duration of the event.",
+                required: true,
+                attributes: {
+                  options: fields
+                    .filter((f) => f.type.name === "Int" || f.type.name === "Int")
+                    .map((f) => f.name)
+                    .join(),
+                },
+                showIf: {switch_to_duration: true},
+              },
+              {
                 name: "duration_units",
                 label: "Duration units",
                 type: "String",
@@ -119,6 +118,29 @@ const configuration_workflow = () =>
                 required: true,
                 attributes: {
                   options: "Seconds,Minutes,Hours,Days",
+                },
+                showIf: {switch_to_duration: true},
+              },
+              {
+                name: "switch_to_duration",
+                label: "Use duration instead",
+                sublabel: "Use an duration instead of an end date",
+                type: "Bool",
+                required: true,
+              },
+              {
+                name: "allday_field",
+                label: "All-day field",
+                type: "String",
+                sublabel: "Boolean field to specify whether this is an all-day event.",
+                required: false,
+                attributes: {
+                  options: [
+                    ...fields
+                      .filter((f) => f.type.name === "Bool")
+                      .map((f) => f.name),
+                    "Always",
+                  ].join(),
                 },
               },
               {
@@ -214,11 +236,11 @@ const get_state_fields = async (table_id, viewname, { show_view }) => {
     return sf;
   });
 };
-const addSeconds = (d, secs) => {
+function addSeconds (d, secs) {
   const r = new Date(d);
   r.setSeconds(r.getSeconds() + r);
   return r;
-};
+}
 const run = async (
   table_id,
   viewname,
@@ -245,8 +267,10 @@ const run = async (
   readState(state, fields);
   const qstate = await stateFieldsToWhere({ fields, state });
   const rows = await table.getRows(qstate);
-  const id = `cal${Math.round(Math.random() * 100000)}`;
-  const unitSecs =
+
+  const id = `cal${Math.round(Math.random() * 100000)}`; //calendar ID
+
+  const unitSecs = //number of seconds per unit- ie if the duration unit is 1 minute, this is 60 seconds. multiply by duration to get length of event in seconds.
     duration_units === "Seconds"
       ? 1
       : duration_units === "Minutes"
@@ -255,9 +279,13 @@ const run = async (
       ? 24 * 60 * 60
       : 60 * 60;
   const events = rows.map((row) => { //create the event objects
+
     const start = row[start_field]; //start = start field
     const allDay = (allday_field === "Always") || row[allday_field]; //if allday field is "always", allday=true, otherwise use value
-    const end = row[end_field];
+
+    const end_by_duration = addSeconds(row[start_field], row[duration] * unitSecs);
+    const end = switch_to_duration ? end_by_duration : row[end_field]; // if using duration, show end by duration. otherwise, use end field value.
+
     const url = expand_view ? `/view/${expand_view}?id=${row.id}` : undefined; //url to go to when the event is clicked
     return {
       title: row[title_field],
