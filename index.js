@@ -251,7 +251,7 @@ const run = async (
     allday_field,
     end_field,
     duration_units,
-    duraion_field,
+    duration_field,
     switch_to_duration,
     title_field,
     nowIndicator,
