@@ -98,17 +98,15 @@ const configuration_workflow = () =>
                 },
               },
               {
-                name: "duration_field",
-                label: "Duration field",
+                name: "end_field",
+                label: "End field",
                 type: "String",
                 sublabel:
-                  "A field of type 'Int' or 'Float' to denote the duration of the event.",
-                required: false,
+                  "A field of type 'Date' to denote the end of the event.",
+                required: true,
                 attributes: {
                   options: fields
-                    .filter(
-                      (f) => f.type.name === "Int" || f.type.name === "Float"
-                    )
+                    .filter((f) => f.type.name === "Date")
                     .map((f) => f.name)
                     .join(),
                 },
@@ -229,7 +227,7 @@ const run = async (
     expand_view,
     start_field,
     allday_field,
-    duration_field,
+    end_field,
     duration_units,
     title_field,
     nowIndicator,
@@ -257,14 +255,10 @@ const run = async (
       ? 24 * 60 * 60
       : 60 * 60;
   const events = rows.map((row) => { //create the event objects
-    const start = row[start_field];
-    const allDay =
-      allday_field === "Always" ||
-      row[allday_field] ||
-      typeof row[duration_field] === "undefined";
-
-    const end = addSeconds(start, row[duration_field] * unitSecs);
-    const url = expand_view ? `/view/${expand_view}?id=${row.id}` : undefined;
+    const start = row[start_field]; //start = start field
+    const allDay = (allday_field === "Always") || row[allday_field]; //if allday field is "always", allday=true, otherwise use value
+    const end = row[end_field];
+    const url = expand_view ? `/view/${expand_view}?id=${row.id}` : undefined; //url to go to when the event is clicked
     return {
       title: row[title_field],
       start,
