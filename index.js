@@ -324,6 +324,7 @@ const run = async (
       center: 'title',
       right: '${calendar_view_options}',
     },
+    navLinks: true,
     initialView: '${initialView}',
     ${custom_calendar_views ? custom_calendar_views + "," : ""}
     nowIndicator: ${nowIndicator},
