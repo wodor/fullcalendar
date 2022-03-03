@@ -284,7 +284,7 @@ const run = async (
   const qstate = await stateFieldsToWhere({ fields, state });
   const rows = await table.getRows(qstate);
 
-  const calendar_id = `cal${Math.round(Math.random() * 100000)}`;
+  const id = `cal${Math.round(Math.random() * 100000)}`;
 
   const unitSecs = //number of seconds per unit- ie if the duration unit is 1 minute, this is 60 seconds. multiply by duration to get length of event in seconds.
     duration_units === "Seconds"
@@ -318,7 +318,7 @@ const run = async (
   return div(
     script(
       domReady(`
-  var calendarEl = document.getElementById('${calendar_id}');
+  var calendarEl = document.getElementById('${id}');
   var calendar = new FullCalendar.Calendar(calendarEl, {
     headerToolbar: {
       left: 'prev,next today${view_to_create ? " add" : ""}',
@@ -348,7 +348,7 @@ const run = async (
   });
   calendar.render();`)
     ),
-    div({ calendar_id })
+    div({ id })
   );
 };
 
