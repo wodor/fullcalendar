@@ -340,7 +340,7 @@ const run = async (
     },
     selectable: true,
     select: function(info) {
-      location.href='/view/${view_to_create}?${start_field}=' + encodeURIComponent(info.startStr) ${end_field ? (`+ '&` + end_field + `=' + encodeURIComponent(info.startStr)`) : ""};
+      location.href='/view/${view_to_create}?${start_field}=' + encodeURIComponent(info.startStr) ${end_field ? (`+ '&` + end_field + `=' + encodeURIComponent(info.endStr)`) : ""};
     },` : "" }
     events: ${JSON.stringify(events)}
   });
