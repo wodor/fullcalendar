@@ -256,18 +256,22 @@ const run = async (
       : duration_units === "Days"
       ? 24 * 60 * 60
       : 60 * 60;
-  const events = rows.map((row) => {
+  const events = rows.map((row) => { //create the event objects
     const start = row[start_field];
     const allDay =
       allday_field === "Always" ||
       row[allday_field] ||
       typeof row[duration_field] === "undefined";
 
-    const end = allDay
-      ? undefined
-      : addSeconds(start, row[duration_field] * unitSecs);
+    const end = addSeconds(start, row[duration_field] * unitSecs);
     const url = expand_view ? `/view/${expand_view}?id=${row.id}` : undefined;
-    return { title: row[title_field], start, allDay, end, url };
+    return {
+      title: row[title_field],
+      start,
+      allDay,
+      end,
+      url
+    };
   });
   return div(
     script(
