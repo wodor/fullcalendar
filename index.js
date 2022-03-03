@@ -338,8 +338,9 @@ const run = async (
         }
       }
     },
-    dateClick: function(info) {
-      location.href='/view/${view_to_create}?${start_field}='+encodeURIComponent(info.dateStr);
+    selectable: true,
+    select: function(info) {
+      location.href='/view/${view_to_create}?${start_field}=' + encodeURIComponent(info.startStr) ${end_field ? (`+ '&` + end_field + `=' + encodeURIComponent(info.startStr)`) : ""};
     },` : "" }
     events: ${JSON.stringify(events)}
   });
