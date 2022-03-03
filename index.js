@@ -97,7 +97,7 @@ const configuration_workflow = () =>
                 },
               },
               {
-                name: "duration",
+                name: "duration_field",
                 label: "Duration",
                 type: "String",
                 sublabel: "An 'Int' or 'Float' field for the duration of the event.",
@@ -251,6 +251,8 @@ const run = async (
     allday_field,
     end_field,
     duration_units,
+    duraion_field,
+    switch_to_duration,
     title_field,
     nowIndicator,
     weekNumbers,
@@ -283,7 +285,7 @@ const run = async (
     const start = row[start_field]; //start = start field
     const allDay = (allday_field === "Always") || row[allday_field]; //if allday field is "always", allday=true, otherwise use value
 
-    const end_by_duration = addSeconds(row[start_field], row[duration] * unitSecs);
+    const end_by_duration = addSeconds(row[start_field], row[duration_field] * unitSecs);
     const end = switch_to_duration ? end_by_duration : row[end_field]; // if using duration, show end by duration. otherwise, use end field value.
 
     const url = expand_view ? `/view/${expand_view}?id=${row.id}` : undefined; //url to go to when the event is clicked
