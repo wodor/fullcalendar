@@ -284,7 +284,7 @@ const run = async (
   const qstate = await stateFieldsToWhere({ fields, state });
   const rows = await table.getRows(qstate);
 
-  const id = `cal${Math.round(Math.random() * 100000)}`; //calendar ID
+  const calendar_id = `cal${Math.round(Math.random() * 100000)}`;
 
   const unitSecs = //number of seconds per unit- ie if the duration unit is 1 minute, this is 60 seconds. multiply by duration to get length of event in seconds.
     duration_units === "Seconds"
@@ -304,6 +304,7 @@ const run = async (
     const end = switch_to_duration ? end_by_duration : row[end_field]; // if using duration, show end by duration. otherwise, use end field value.
     const url = expand_view ? `/view/${expand_view}?id=${row.id}` : undefined; //url to go to when the event is clicked
     const color = row[event_color];
+    const id = row.id;
 
     return {
       title: row[title_field],
@@ -317,7 +318,7 @@ const run = async (
   return div(
     script(
       domReady(`
-  var calendarEl = document.getElementById('${id}');
+  var calendarEl = document.getElementById('${calendar_id}');
   var calendar = new FullCalendar.Calendar(calendarEl, {
     headerToolbar: {
       left: 'prev,next today${view_to_create ? " add" : ""}',
@@ -342,12 +343,18 @@ const run = async (
     selectable: true,
     select: function(info) {
       location.href='/view/${view_to_create}?${start_field}=' + info.startStr ${end_field ? (`+ '&` + end_field + `=' + info.endStr`) : ""};
-    },` : "" }
+    },
+    function(info) {
+      alert(info.event.title + " was dropped on " + info.event.start.toISOString());
+      const old_event = await(Table.findOne({id: context.table_id}).getRow({id: info.event.id})); //look up the event from db
+      console.log(old_event.start);
+    }
+    ` : "" }
     events: ${JSON.stringify(events)}
   });
   calendar.render();`)
     ),
-    div({ id })
+    div({ calendar_id })
   );
 };
 
