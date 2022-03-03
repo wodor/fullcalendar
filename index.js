@@ -299,7 +299,7 @@ const run = async (
     const duration_in_seconds = row[duration_field] * unitSecs; //duration in seconds = duration * unit
     const end_by_duration = addSeconds(row[start_field], duration_in_seconds); //add duration in seconds to start time
 
-    const start = row[event_color]; //start = start field
+    const start = row[start_field]; //start = start field
     const allDay = (allday_field === "Always") || row[allday_field]; //if allday field is "always", allday=true, otherwise use value
     const end = switch_to_duration ? end_by_duration : row[end_field]; // if using duration, show end by duration. otherwise, use end field value.
     const url = expand_view ? `/view/${expand_view}?id=${row.id}` : undefined; //url to go to when the event is clicked
@@ -310,7 +310,8 @@ const run = async (
       start,
       allDay,
       end,
-      url
+      url,
+      color,
     };
   });
   return div(
