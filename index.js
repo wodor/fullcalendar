@@ -344,7 +344,7 @@ const run = async (
     select: function(info) {
       location.href='/view/${view_to_create}?${start_field}=' + info.startStr ${end_field ? (`+ '&` + end_field + `=' + info.endStr`) : ""};
     },
-    function(info) {
+    eventDrop: function(info) {
       alert(info.event.title + " was dropped on " + info.event.start.toISOString());
       const old_event = await(Table.findOne({id: context.table_id}).getRow({id: info.event.id})); //look up the event from db
       console.log(old_event.start);
