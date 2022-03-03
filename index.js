@@ -340,7 +340,7 @@ const run = async (
     },
     selectable: true,
     select: function(info) {
-      location.href='/view/${view_to_create}?${start_field}=' + encodeURIComponent(info.startStr) ${end_field ? (`+ '&` + end_field + `=' + encodeURIComponent(info.endStr)`) : ""};
+      location.href='/view/${view_to_create}?${start_field}=' + info.startStr ${end_field ? (`+ '&` + end_field + `=' + info.endStr`) : ""};
     },` : "" }
     events: ${JSON.stringify(events)}
   });
