@@ -306,18 +306,17 @@ const run = async (
 
 const headers = [
   {
-    script: "https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.js",
-    integrity: "sha256-YicH/8aE660iEnJtgll3vT54dJApy3XkYmqNfGVFEzA=",
+    script: "/plugins/public/fullcalendar/main.min.js",
   },
   {
-    css: "https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.css",
-    integrity: "sha256-5veQuRbWaECuYxwap/IOE/DAwNxgm4ikX7nrgsqYp88=",
+    css: "/plugins/public/fullcalendar/main.min.css",
   },
 ];
 
 module.exports = {
   sc_plugin_api_version: 1,
   headers,
+  plugin_name: "fullcalendar",
   viewtemplates: [
     {
       name: "Calendar",
