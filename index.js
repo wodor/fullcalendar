@@ -352,7 +352,14 @@ const run = async (
     },` : "" }
     events: ${JSON.stringify(events)}
   });
-  calendar.setOption('locale', window.detected_locale);
+  const locale = () => {
+    if (navigator.languages && navigator.languages.length) {
+      return navigator.languages[0];
+    } else {
+      return navigator.userLanguage || navigator.language || navigator.browserLanguage || 'en';
+    }
+  }
+  calendar.setOption('locale', locale);
   calendar.render();`)
     ),
     div({ id })
