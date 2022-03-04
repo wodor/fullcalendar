@@ -328,9 +328,8 @@ const run = async (
       return navigator.userLanguage || navigator.language || navigator.browserLanguage || 'en';
     }
   }
-
+  console.log(locale);
   var calendar = new FullCalendar.Calendar(calendarEl, {
-    locale: locale,
     headerToolbar: {
       left: 'prev,next today${view_to_create ? " add" : ""}',
       center: 'title',
