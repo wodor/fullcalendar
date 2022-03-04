@@ -369,8 +369,8 @@ const run = async (
   );
 };
 
-const update_calendar_event = async(data, table_id) => {
-  return { json: { error: table_id } };
+const update_calendar_event = async(data, context) => {
+  return { json: { error: context.table_id } };
   const db_event = await Table.findOne({ id: table_id }).getRow({ id: data.id});
 };
 
