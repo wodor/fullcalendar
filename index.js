@@ -321,7 +321,6 @@ const run = async (
       domReady(`
   var calendarEl = document.getElementById('${id}');
   var calendar = new FullCalendar.Calendar(calendarEl, {
-    locale: window.detected_locale,
     headerToolbar: {
       left: 'prev,next today${view_to_create ? " add" : ""}',
       center: 'title',
@@ -353,6 +352,7 @@ const run = async (
     },` : "" }
     events: ${JSON.stringify(events)}
   });
+  calendar.setOption('locale', window.detected_locale);
   calendar.render();`)
     ),
     div({ id })
