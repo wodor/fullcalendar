@@ -345,7 +345,10 @@ const run = async (
     select: function(info) {
       location.href='/view/${view_to_create}?${start_field}=' + info.startStr ${end_field ? (`+ '&` + end_field + `=' + info.endStr`) : ""};
     },
-    eventStartEditable: true,` : "" }
+    eventStartEditable: true,
+    eventDrop function(info) {
+      alert(info.event.title + " was dropped on " + info.event.start.toISOString());
+    }` : "" }
     events: ${JSON.stringify(events)}
   });
   calendar.render();`)
