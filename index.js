@@ -348,7 +348,7 @@ const run = async (
     eventStartEditable: true,
     eventDrop: function(info) {
       alert(info.event.title + " was dropped on " + info.event.start.toISOString());
-      view_post('${context.viewname}', 'update_calendar_event', info.event);
+      view_post('${viewname}', 'update_calendar_event', info.event);
     },` : "" }
     events: ${JSON.stringify(events)}
   });
