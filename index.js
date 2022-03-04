@@ -358,6 +358,10 @@ const run = async (
   );
 };
 
+const update_calendar_event = async(old_event) => {
+  console.log('Recieved event' + old_event.title);
+};
+
 const headers = [
   {
     script: "/plugins/public/fullcalendar/main.min.js",
