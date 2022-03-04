@@ -321,13 +321,15 @@ const run = async (
       domReady(`
   var calendarEl = document.getElementById('${id}');
 
-  const locale = () => {
-    if (navigator.languages && navigator.languages.length) {
-      return navigator.languages[0];
-    } else {
-      return navigator.userLanguage || navigator.language || navigator.browserLanguage || 'en';
-    }
-  }
+  const locale =
+    navigator.userLanguage ||
+    (navigator.languages &&
+      navigator.languages.length &&
+      navigator.languages[0]) ||
+    navigator.language ||
+    navigator.browserLanguage ||
+    navigator.systemLanguage ||
+    "en";
   console.log(locale);
   var calendar = new FullCalendar.Calendar(calendarEl, {
     headerToolbar: {
