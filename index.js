@@ -330,8 +330,8 @@ const run = async (
     navigator.browserLanguage ||
     navigator.systemLanguage ||
     "en";
-  console.log(locale);
   var calendar = new FullCalendar.Calendar(calendarEl, {
+    locale: locale,
     headerToolbar: {
       left: 'prev,next today${view_to_create ? " add" : ""}',
       center: 'title',
