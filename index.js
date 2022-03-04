@@ -348,8 +348,7 @@ const run = async (
     eventStartEditable: true,
     eventDrop: function(info) {
       alert(info.event.title + " was dropped on " + info.event.start.toISOString());
-      const old_event = await(Table.findOne({name: 'event'}).getRow({id: info.event.id})); //look up the event from db
-      console.log(old_event.start);
+      view_post('${context.viewname}', 'update_calendar_event', info.event);
     },` : "" }
     events: ${JSON.stringify(events)}
   });
@@ -380,6 +379,7 @@ module.exports = {
       get_state_fields,
       configuration_workflow,
       run,
+      routes: {update_calendar_event},
     },
   ],
 };
