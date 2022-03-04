@@ -358,8 +358,8 @@ const run = async (
   );
 };
 
-const update_calendar_event = async(old_event) => {
-  console.log('Recieved event' + old_event.title);
+const update_calendar_event = async(data, table_id) => {
+  const db_event = await Table.findOne({ id: table_id }).getRow({ id: data.id});
 };
 
 const headers = [
