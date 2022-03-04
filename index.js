@@ -321,6 +321,7 @@ const run = async (
       domReady(`
   var calendarEl = document.getElementById('${id}');
   var calendar = new FullCalendar.Calendar(calendarEl, {
+    locale: detected_locale,
     headerToolbar: {
       left: 'prev,next today${view_to_create ? " add" : ""}',
       center: 'title',
@@ -365,6 +366,9 @@ const update_calendar_event = async(data, table_id) => {
 const headers = [
   {
     script: "/plugins/public/fullcalendar/main.min.js",
+  },
+  {
+    script: "/plugins/public/fullcalendar/locales-all.min.js",
   },
   {
     css: "/plugins/public/fullcalendar/main.min.css",
