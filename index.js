@@ -355,11 +355,6 @@ const run = async (
     selectable: true,
     select: function(info) {
       location.href='/view/${view_to_create}?${start_field}=' + info.startStr ${end_field ? (`+ '&` + end_field + `=' + info.endStr`) : ""};
-    },
-    eventStartEditable: true,
-    eventDrop: function(info) {
-      alert(info.event.title + " was dropped on " + info.event.start.toISOString());
-      view_post('${viewname}', 'update_calendar_event', info.event);
     },` : "" }
     events: ${JSON.stringify(events)}
   });
@@ -369,11 +364,20 @@ const run = async (
   );
 };
 
-const update_calendar_event = async(data, context) => {
-  return { json: { error: context.table_id } };
-  const db_event = await Table.findOne({ id: table_id }).getRow({ id: data.id});
-};
+//failed attempt to make events editable from the calendar, will return to this later
+// const update_calendar_event = async(data, context) => {
+//   const db_event = await Table.findOne({ id: table_id }).getRow({ id: data.id});
+//   return { json: { error: context.table_id } };
+// };
 
+// add this to the calendar above
+// eventStartEditable: true,
+// eventDrop: function(info) {
+//   view_post('${viewname}', 'update_calendar_event', info.event);
+// },
+
+//add this to the viewtemplate
+//routes: {update_calendar_event},
 const headers = [
   {
     script: "/plugins/public/fullcalendar/main.min.js",
@@ -398,7 +402,6 @@ module.exports = {
       get_state_fields,
       configuration_workflow,
       run,
-      routes: {update_calendar_event},
     },
   ],
 };
