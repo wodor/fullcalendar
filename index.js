@@ -71,7 +71,7 @@ const configuration_workflow = () =>
               },
               {
                 name: "start_field",
-                label: "Start time field",
+                label: "Start field",
                 type: "String",
                 sublabel: "A date field for when the event starts.",
                 required: true,
@@ -83,10 +83,56 @@ const configuration_workflow = () =>
                 },
               },
               {
-                name: "allday_field",
-                label: "All-day field",
+                name: "end_field",
+                label: "End field",
                 type: "String",
-                sublabel: "Boolean field to specify whether this is an all-day event (overrides duration).",
+                sublabel: "A date field for when the event ends.",
+                required: false,
+                attributes: {
+                  options: fields
+                    .filter((f) => f.type.name === "Date")
+                    .map((f) => f.name)
+                    .join(),
+                },
+                showIf: {switch_to_duration: false},
+              },
+              {
+                name: "duration_field",
+                label: "Duration",
+                type: "String",
+                sublabel: "An 'Int' or 'Float' field for the duration of the event.",
+                required: false,
+                attributes: {
+                  options: fields
+                    .filter((f) => f.type.name === "Int" || f.type.name === "Float")
+                    .map((f) => f.name)
+                    .join(),
+                },
+                showIf: {switch_to_duration: true},
+              },
+              {
+                name: "duration_units",
+                label: "Duration units",
+                type: "String",
+                sublabel: "Units of duration field",
+                required: false,
+                attributes: {
+                  options: "Seconds,Minutes,Hours,Days",
+                },
+                showIf: {switch_to_duration: true},
+              },
+              {
+                name: "switch_to_duration",
+                label: "Use duration instead",
+                sublabel: "Use an event duration instead of an end date",
+                type: "Bool",
+                required: true,
+              },
+              {
+                name: "allday_field",
+                type: "String",
+                label: "All-day field",
+                sublabel: "Boolean field to specify whether this is an all-day event.",
                 required: false,
                 attributes: {
                   options: [
@@ -98,29 +144,16 @@ const configuration_workflow = () =>
                 },
               },
               {
-                name: "duration_field",
-                label: "Duration field",
+                name: "event_color",
                 type: "String",
-                sublabel:
-                  "A field of type 'Int' or 'Float' to denote the duration of the event.",
+                label: "Event Color",
+                sublabel: "A 'Color' field to set the color of this event.",
                 required: false,
                 attributes: {
                   options: fields
-                    .filter(
-                      (f) => f.type.name === "Int" || f.type.name === "Float"
-                    )
+                    .filter((f) => f.type.name === "Color")
                     .map((f) => f.name)
                     .join(),
-                },
-              },
-              {
-                name: "duration_units",
-                label: "Duration units",
-                type: "String",
-                sublabel: "Units of duration field",
-                required: true,
-                attributes: {
-                  options: "Seconds,Minutes,Hours,Days",
                 },
               },
               {
@@ -216,11 +249,11 @@ const get_state_fields = async (table_id, viewname, { show_view }) => {
     return sf;
   });
 };
-const addSeconds = (d, secs) => {
-  const r = new Date(d);
-  r.setSeconds(r.getSeconds() + r);
+function addSeconds (date, secs) { // adds seconds to date and returns new date
+  const r = new Date(date);
+  r.setSeconds(r.getSeconds() + secs);
   return r;
-};
+}
 const run = async (
   table_id,
   viewname,
@@ -229,8 +262,10 @@ const run = async (
     expand_view,
     start_field,
     allday_field,
-    duration_field,
+    end_field,
     duration_units,
+    duration_field,
+    switch_to_duration,
     title_field,
     nowIndicator,
     weekNumbers,
@@ -238,6 +273,7 @@ const run = async (
     default_event_color,
     calendar_view_options,
     custom_calendar_views,
+    event_color,
   },
   state,
   extraArgs
@@ -247,8 +283,10 @@ const run = async (
   readState(state, fields);
   const qstate = await stateFieldsToWhere({ fields, state });
   const rows = await table.getRows(qstate);
+
   const id = `cal${Math.round(Math.random() * 100000)}`;
-  const unitSecs =
+
+  const unitSecs = //number of seconds per unit- ie if the duration unit is 1 minute, this is 60 seconds. multiply by duration to get length of event in seconds.
     duration_units === "Seconds"
       ? 1
       : duration_units === "Minutes"
@@ -256,29 +294,50 @@ const run = async (
       : duration_units === "Days"
       ? 24 * 60 * 60
       : 60 * 60;
-  const events = rows.map((row) => {
-    const start = row[start_field];
-    const allDay =
-      allday_field === "Always" ||
-      row[allday_field] ||
-      typeof row[duration_field] === "undefined";
+  const events = rows.map((row) => { //create the event objects
 
-    const end = allDay
-      ? undefined
-      : addSeconds(start, row[duration_field] * unitSecs);
-    const url = expand_view ? `/view/${expand_view}?id=${row.id}` : undefined;
-    return { title: row[title_field], start, allDay, end, url };
+    const duration_in_seconds = row[duration_field] * unitSecs; //duration in seconds = duration * unit
+    const end_by_duration = addSeconds(row[start_field], duration_in_seconds); //add duration in seconds to start time
+
+    const start = row[start_field]; //start = start field
+    const allDay = (allday_field === "Always") || row[allday_field]; //if allday field is "always", allday=true, otherwise use value
+    const end = switch_to_duration ? end_by_duration : row[end_field]; // if using duration, show end by duration. otherwise, use end field value.
+    const url = expand_view ? `/view/${expand_view}?id=${row.id}` : undefined; //url to go to when the event is clicked
+    const color = row[event_color];
+    const id = row.id;
+
+    return {
+      title: row[title_field],
+      start,
+      allDay,
+      end,
+      url,
+      color,
+      id,
+    };
   });
   return div(
     script(
       domReady(`
   var calendarEl = document.getElementById('${id}');
+
+  const locale =
+    navigator.userLanguage ||
+    (navigator.languages &&
+      navigator.languages.length &&
+      navigator.languages[0]) ||
+    navigator.language ||
+    navigator.browserLanguage ||
+    navigator.systemLanguage ||
+    "en";
   var calendar = new FullCalendar.Calendar(calendarEl, {
+    locale: locale,
     headerToolbar: {
       left: 'prev,next today${view_to_create ? " add" : ""}',
       center: 'title',
       right: '${calendar_view_options}',
     },
+    navLinks: true,
     initialView: '${initialView}',
     ${custom_calendar_views ? custom_calendar_views + "," : ""}
     nowIndicator: ${nowIndicator},
@@ -293,8 +352,9 @@ const run = async (
         }
       }
     },
-    dateClick: function(info) {
-      location.href='/view/${view_to_create}?${start_field}='+encodeURIComponent(info.dateStr);
+    selectable: true,
+    select: function(info) {
+      location.href='/view/${view_to_create}?${start_field}=' + info.startStr ${end_field ? (`+ '&` + end_field + `=' + info.endStr`) : ""};
     },` : "" }
     events: ${JSON.stringify(events)}
   });
@@ -304,9 +364,26 @@ const run = async (
   );
 };
 
+//failed attempt to make events editable from the calendar, will return to this later
+// const update_calendar_event = async(data, context) => {
+//   const db_event = await Table.findOne({ id: table_id }).getRow({ id: data.id});
+//   return { json: { error: context.table_id } };
+// };
+
+// add this to the calendar above
+// eventStartEditable: true,
+// eventDrop: function(info) {
+//   view_post('${viewname}', 'update_calendar_event', info.event);
+// },
+
+//add this to the viewtemplate
+//routes: {update_calendar_event},
 const headers = [
   {
     script: "/plugins/public/fullcalendar/main.min.js",
+  },
+  {
+    script: "/plugins/public/fullcalendar/locales-all.min.js",
   },
   {
     css: "/plugins/public/fullcalendar/main.min.css",
