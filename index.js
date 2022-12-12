@@ -533,6 +533,15 @@ const update_calendar_event = async (
   if (role > table.min_role_write) {
     return { json: { error: req.__("Not authorized") } };
   }
+  const fields = await table.getFields();
+  if (
+    switch_to_duration &&
+    duration_field &&
+    fields &&
+    !fields.find((field) => field.name === duration_field)
+  ) {
+    return { json: { error: req.__("The duration column does not exist.") } };
+  }
   const row = await table.getRow({ id: rowId });
   let updateVals = {};
   let allDayChanged = false;
@@ -561,9 +570,9 @@ const update_calendar_event = async (
       const oldDuration = row[duration_field];
       if (newDuration !== oldDuration) updateVals[duration_field] = newDuration;
     }
-  } else if (isValidDate(endAsDate)) {
+  } else if (end_field && isValidDate(endAsDate)) {
     updateVals[end_field] = endAsDate;
-  } else if (allDayChanged && !isEmptyDelta(delta)) {
+  } else if (end_field && allDayChanged && !isEmptyDelta(delta)) {
     updateVals[end_field] = applyDelta(row[end_field], delta);
   }
   if (Object.keys(updateVals).length !== 0)
