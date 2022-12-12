@@ -234,6 +234,32 @@ const configuration_workflow = () =>
                 required: true,
                 default: "#4e73df",
               },
+              {
+                name: "limit_to_working_days",
+                type: "Bool",
+                label: "Limit to working days",
+                sublabel: "Only working days in week views",
+                sublabel:
+                  "Filter out Saturday and Sunday in views designed for weeks (dayGridWeek, timeGridWeek).",
+                required: false,
+                default: false,
+              },
+              {
+                name: "min_week_view_time",
+                type: "String",
+                label: "Min time in week views",
+                sublabel:
+                  "Min time to display in timeGridWeek, e.g. 08:00",
+                required: false,
+              },
+              {
+                name: "max_week_view_time",
+                type: "String",
+                label: "Max time in week views",
+                sublabel:
+                  "Max time to display in timeGridWeek, e.g. 20:00",
+                required: false,
+              },
             ],
           });
         },
@@ -254,6 +280,71 @@ function addSeconds (date, secs) { // adds seconds to date and returns new date
   r.setSeconds(r.getSeconds() + secs);
   return r;
 }
+const applyDelta = (old, delta) => {
+  const msAsSecs = delta.milliseconds !== 0 ? delta.milliseconds / 1000 : 0;
+  const daysAsSecs = 24 * 60 * 60 * delta.days;
+  const newDate = addSeconds(old, msAsSecs + daysAsSecs);
+  if (delta.months !== 0) newDate.setMonth(newDate.getMonth() + delta.months);
+  if (delta.years !== 0)
+    newDate.setFullYear(newDate.getFullYear() + delta.years);
+  return newDate;
+};
+const isValidDate = (date) => {
+  return date instanceof Date && !isNaN(date);
+};
+const unitSeconds = (duration_units) => {
+  //number of seconds per unit- ie if the duration unit is 1 minute, this is 60 seconds. multiply by duration to get length of event in seconds.
+  return duration_units === "Seconds"
+    ? 1
+    : duration_units === "Minutes"
+    ? 60
+    : duration_units === "Days"
+    ? 24 * 60 * 60
+    : 60 * 60;
+};
+const isEmptyDelta = (delta) => {
+  return delta
+    ? delta.years === 0 &&
+        delta.months === 0 &&
+        delta.days === 0 &&
+        delta.milliseconds === 0
+    : true;
+};
+const eventFromRow = (
+  row,
+  alwaysAllDay,
+  {
+    expand_view,
+    start_field,
+    allday_field,
+    end_field,
+    duration_field,
+    duration_units,
+    switch_to_duration,
+    title_field,
+    event_color,
+  }
+) => {
+  const unitSecs = unitSeconds(duration_units);
+  const duration_in_seconds = row[duration_field] * unitSecs; //duration in seconds = duration * unit
+  const end_by_duration = addSeconds(row[start_field], duration_in_seconds); //add duration in seconds to start time
+  const start = row[start_field]; //start = start field
+  const allDay = alwaysAllDay || row[allday_field]; //if allday field is "always", allday=true, otherwise use value
+  const end = switch_to_duration ? end_by_duration : row[end_field]; // if using duration, show end by duration. otherwise, use end field value.
+  const url = expand_view ? `/view/${expand_view}?id=${row.id}` : undefined; //url to go to when the event is clicked
+  const color = row[event_color];
+  const id = row.id;
+  return {
+    title: row[title_field],
+    start,
+    allDay,
+    end,
+    url,
+    color,
+    id,
+  };
+};
+
 const run = async (
   table_id,
   viewname,
@@ -274,6 +365,9 @@ const run = async (
     calendar_view_options,
     custom_calendar_views,
     event_color,
+    limit_to_working_days,
+    min_week_view_time,
+    max_week_view_time,
   },
   state,
   extraArgs
@@ -285,37 +379,30 @@ const run = async (
   const rows = await table.getRows(qstate);
 
   const id = `cal${Math.round(Math.random() * 100000)}`;
-
-  const unitSecs = //number of seconds per unit- ie if the duration unit is 1 minute, this is 60 seconds. multiply by duration to get length of event in seconds.
-    duration_units === "Seconds"
-      ? 1
-      : duration_units === "Minutes"
-      ? 60
-      : duration_units === "Days"
-      ? 24 * 60 * 60
-      : 60 * 60;
-  const events = rows.map((row) => { //create the event objects
-
-    const duration_in_seconds = row[duration_field] * unitSecs; //duration in seconds = duration * unit
-    const end_by_duration = addSeconds(row[start_field], duration_in_seconds); //add duration in seconds to start time
-
-    const start = row[start_field]; //start = start field
-    const allDay = (allday_field === "Always") || row[allday_field]; //if allday field is "always", allday=true, otherwise use value
-    const end = switch_to_duration ? end_by_duration : row[end_field]; // if using duration, show end by duration. otherwise, use end field value.
-    const url = expand_view ? `/view/${expand_view}?id=${row.id}` : undefined; //url to go to when the event is clicked
-    const color = row[event_color];
-    const id = row.id;
-
-    return {
-      title: row[title_field],
-      start,
-      allDay,
-      end,
-      url,
-      color,
-      id,
-    };
-  });
+  const weekends = limit_to_working_days ? false : true; // fullcalendar flag to filter out weekends
+  // parse min/max times or use defaults
+  const minAsDate = new Date(`1970-01-01T${min_week_view_time}`);
+  const maxAsDate = new Date(`1970-01-01T${max_week_view_time}`);
+  const minTime = isValidDate(minAsDate)
+    ? minAsDate.toTimeString()
+    : "00:00:00";
+  const maxTime = isValidDate(maxAsDate)
+    ? maxAsDate.toTimeString()
+    : "24:00:00";
+  const alwaysAllDay = allday_field === "Always";
+  const events = rows.map((row) =>
+    eventFromRow(row, alwaysAllDay, {
+      expand_view,
+      start_field,
+      allday_field,
+      end_field,
+      duration_field,
+      duration_units,
+      switch_to_duration,
+      title_field,
+      event_color,
+    })
+  );
   return div(
     script(
       domReady(`
@@ -330,6 +417,21 @@ const run = async (
     navigator.browserLanguage ||
     navigator.systemLanguage ||
     "en";
+  const weekViewOptions = {
+    weekends: ${weekends},
+    slotMinTime: "${minTime}",
+    slotMaxTime: "${maxTime}",
+  };
+  const alwaysAllday = ${alwaysAllDay};
+  const isResizeable = ${
+    switch_to_duration
+      ? duration_field
+        ? true
+        : false
+      : end_field
+      ? true
+      : false
+  };
   var calendar = new FullCalendar.Calendar(calendarEl, {
     locale: locale,
     headerToolbar: {
@@ -356,7 +458,52 @@ const run = async (
     select: function(info) {
       location.href='/view/${view_to_create}?${start_field}=' + info.startStr ${end_field ? (`+ '&` + end_field + `=' + info.endStr`) : ""};
     },` : "" }
-    events: ${JSON.stringify(events)}
+    events: ${JSON.stringify(events)},
+    editable: true, 
+    eventResizableFromStart: isResizeable,
+    eventDurationEditable: isResizeable,
+    eventResize: (info) => {
+      const rowId = info.event.id;
+      const dataObj = { rowId, start: info.event.start, end: info.event.end, };
+      view_post('${viewname}', 'update_calendar_event', dataObj,
+        (res) => { 
+          if(res.error) info.revert();
+          else if (res.newEvent) {
+            info.event.remove();
+            calendar.addEvent(res.newEvent);
+          }
+        }
+      );
+    },
+    eventDrop: (info) => {
+      if (alwaysAllday && !info.event.allDay) {
+        notifyAlert({ 
+          type: "danger", 
+          text: "Setting a time is not allowed when 'All-day' is set to 'Always'.",
+        });
+        info.revert();
+      }
+      else {
+        const rowId = info.event.id;
+        const dataObj = { 
+          rowId, delta: info.delta, allDay: info.event.allDay, 
+          start: info.event.start, end: info.event.end,
+        };
+        view_post('${viewname}', 'update_calendar_event', dataObj,
+          (res) => { 
+            if (res.error) info.revert();
+            else if (res.newEvent) {
+              info.event.remove();
+              calendar.addEvent(res.newEvent);
+            } 
+          }
+        );
+      }
+    },
+    views: {
+      dayGridWeek: weekViewOptions,
+      timeGridWeek: weekViewOptions,
+    },
   });
   calendar.render();`)
     ),
@@ -364,20 +511,80 @@ const run = async (
   );
 };
 
-//failed attempt to make events editable from the calendar, will return to this later
-// const update_calendar_event = async(data, context) => {
-//   const db_event = await Table.findOne({ id: table_id }).getRow({ id: data.id});
-//   return { json: { error: context.table_id } };
-// };
-
-// add this to the calendar above
-// eventStartEditable: true,
-// eventDrop: function(info) {
-//   view_post('${viewname}', 'update_calendar_event', info.event);
-// },
-
-//add this to the viewtemplate
-//routes: {update_calendar_event},
+const update_calendar_event = async (
+  table_id,
+  viewname,
+  {
+    start_field,
+    end_field,
+    duration_units,
+    duration_field,
+    switch_to_duration,
+    allday_field,
+    expand_view,
+    title_field,
+    event_color,
+  },
+  { rowId, delta, allDay, start, end },
+  { req }
+) => {
+  const table = await Table.findOne({ id: table_id });
+  const role = req.isAuthenticated() ? req.user.role_id : 10;
+  if (role > table.min_role_write) {
+    return { json: { error: req.__("Not authorized") } };
+  }
+  const row = await table.getRow({ id: rowId });
+  let updateVals = {};
+  let allDayChanged = false;
+  if (
+    allday_field &&
+    allday_field !== "Always" &&
+    allDay !== undefined &&
+    row[allday_field] !== allDay
+  ) {
+    updateVals[allday_field] = allDay;
+    allDayChanged = true;
+  }
+  const startAsDate = start ? new Date(start) : null;
+  if (
+    isValidDate(startAsDate) &&
+    startAsDate.getTime() !== row[start_field].getTime()
+  )
+    updateVals[start_field] = startAsDate;
+  const endAsDate = end ? new Date(end) : null;
+  if (switch_to_duration) {
+    if (isValidDate(endAsDate) && isValidDate(startAsDate)) {
+      const unitSecs = unitSeconds(duration_units);
+      const newDuration = Math.trunc(
+        (endAsDate - startAsDate) / 1000 / unitSecs
+      );
+      const oldDuration = row[duration_field];
+      if (newDuration !== oldDuration) updateVals[duration_field] = newDuration;
+    }
+  } else if (isValidDate(endAsDate)) {
+    updateVals[end_field] = endAsDate;
+  } else if (allDayChanged && !isEmptyDelta(delta)) {
+    updateVals[end_field] = applyDelta(row[end_field], delta);
+  }
+  if (Object.keys(updateVals).length !== 0)
+    await table.updateRow(updateVals, rowId, req.user.id);
+  const updatedRow = await table.getRow({ id: rowId });
+  return {
+    json: {
+      newEvent: eventFromRow(updatedRow, allday_field === "Always", {
+        expand_view,
+        start_field,
+        allday_field,
+        end_field,
+        duration_field,
+        duration_units,
+        switch_to_duration,
+        title_field,
+        event_color,
+      }),
+    },
+  };
+};
 const headers = [
   {
     script: "/plugins/public/fullcalendar/main.min.js",
@@ -402,6 +609,7 @@ module.exports = {
       get_state_fields,
       configuration_workflow,
       run,
+      routes: { update_calendar_event },
     },
   ],
 };
