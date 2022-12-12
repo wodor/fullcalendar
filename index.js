@@ -247,7 +247,7 @@ const configuration_workflow = () =>
               {
                 name: "min_week_view_time",
                 type: "String",
-                label: "Min time in week views",
+                label: "Min time in week view",
                 sublabel:
                   "Min time to display in timeGridWeek, e.g. 08:00",
                 required: false,
@@ -255,7 +255,7 @@ const configuration_workflow = () =>
               {
                 name: "max_week_view_time",
                 type: "String",
-                label: "Max time in week views",
+                label: "Max time in week view",
                 sublabel:
                   "Max time to display in timeGridWeek, e.g. 20:00",
                 required: false,
