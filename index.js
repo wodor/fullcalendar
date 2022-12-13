@@ -383,10 +383,12 @@ const run = async (
   // parse min/max times or use defaults
   const minAsDate = new Date(`1970-01-01T${min_week_view_time}`);
   const maxAsDate = new Date(`1970-01-01T${max_week_view_time}`);
-  const minTime = isValidDate(minAsDate)
+  const minIsValid = isValidDate(minAsDate);
+  const minTime = minIsValid
     ? minAsDate.toTimeString()
     : "00:00:00";
-  const maxTime = isValidDate(maxAsDate)
+  const maxIsValid = isValidDate(maxAsDate);
+  const maxTime = maxIsValid
     ? maxAsDate.toTimeString()
     : "24:00:00";
   const alwaysAllDay = allday_field === "Always";
@@ -417,10 +419,13 @@ const run = async (
     navigator.browserLanguage ||
     navigator.systemLanguage ||
     "en";
-  const weekViewOptions = {
+  const timeGridWeekOpts = {
     weekends: ${weekends},
     slotMinTime: "${minTime}",
     slotMaxTime: "${maxTime}",
+  };
+  const dayGridWeekOpts = {
+    weekends: ${weekends},
   };
   const alwaysAllday = ${alwaysAllDay};
   const isResizeable = ${
@@ -432,7 +437,26 @@ const run = async (
       ? true
       : false
   };
+  const hasTimeFilter = ${maxIsValid || minIsValid};
+  const hasWeekendFilter = ${!weekends};
+  let timeGridFilterActive = true;
+  let dayGridFilterActive = true;
   var calendar = new FullCalendar.Calendar(calendarEl, {
+    datesSet: (info) => {
+      let filterBtn = "";
+      if (
+        info.view.type === "timeGridWeek" && 
+        (hasTimeFilter || hasWeekendFilter)
+      ) {
+        filterBtn = timeGridFilterActive ? " disableFilter" : " enableFilter";
+      }
+      else if (info.view.type === "dayGridWeek" && hasWeekendFilter) {
+        filterBtn = dayGridFilterActive ? " disableFilter" : " enableFilter";
+      }      
+      const toolbar = calendar.getOption("headerToolbar");
+      toolbar.left = "prev,next today add" + filterBtn;
+      calendar.setOption("headerToolbar", toolbar);
+    },
     locale: locale,
     headerToolbar: {
       left: 'prev,next today${view_to_create ? " add" : ""}',
@@ -452,7 +476,57 @@ const run = async (
         click: function() {
           location.href='/view/${view_to_create}';
         }
-      }
+      },
+      disableFilter: {
+        text: "show all times",
+        click: function() {
+          // update view
+          const currentView = calendar.currentData.currentViewType;
+          const viewOpts = calendar.getOption("views");
+          if(currentView === "timeGridWeek") {
+            viewOpts.timeGridWeek.slotMinTime = "00:00:00";
+            viewOpts.timeGridWeek.slotMaxTime = "24:00:00";
+            viewOpts.timeGridWeek.weekends = true;
+            timeGridFilterActive = false;
+          }
+          else if (currentView === "dayGridWeek") {
+            viewOpts.dayGridWeek.weekends = true;
+            dayGridFilterActive = false;
+          }
+          calendar.setOption("views", viewOpts);
+          // update toolbar
+          const toolbar = calendar.getOption("headerToolbar");
+          toolbar.left = "prev,next today add enableFilter";
+          calendar.setOption("headerToolbar", toolbar);
+        },
+      },
+      enableFilter: {
+        text: "only working times",
+        click: function() {
+          // update view
+          const currentView = calendar.currentData.currentViewType;
+          if (currentView === "timeGridWeek")
+            timeGridFilterActive = true;
+          else if(currentView === "dayGridWeek")
+            dayGridFilterActive = true;
+          const viewOpts = calendar.getOption("views");
+          if (hasTimeFilter && currentView === "timeGridWeek") {
+            viewOpts.timeGridWeek.slotMinTime = "${minTime}";
+            viewOpts.timeGridWeek.slotMaxTime = "${maxTime}";
+          }
+          if (hasWeekendFilter) {
+            if (currentView === "timeGridWeek")
+              viewOpts.timeGridWeek.weekends = false;
+            else if (currentView === "dayGridWeek")
+              viewOpts.dayGridWeek.weekends = false;
+          }
+          calendar.setOption("views", viewOpts);
+          // update toolbar
+          const toolbar = calendar.getOption("headerToolbar");
+          toolbar.left = "prev,next today add disableFilter";
+          calendar.setOption("headerToolbar", toolbar);
+        },
+      },
     },
     selectable: true,
     select: function(info) {
@@ -501,8 +575,8 @@ const run = async (
       }
     },
     views: {
-      dayGridWeek: weekViewOptions,
-      timeGridWeek: weekViewOptions,
+      dayGridWeek: dayGridWeekOpts,
+      timeGridWeek: timeGridWeekOpts,
     },
   });
   calendar.render();`)
