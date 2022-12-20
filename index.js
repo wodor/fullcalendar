@@ -29,6 +29,22 @@ const readState = (state, fields) => {
   });
   return state;
 };
+const getColorOptions = async (fields) => {
+  const result = [];
+  for (const field of fields) {
+    if (field.type.name === "Color") result.push(field.name);
+    else if (field.is_fkey) {
+      const reftable = Table.findOne({
+        name: field.reftable_name,
+      });
+      const reffields = await reftable.getFields();
+      reffields
+        .filter((f) => f.type.name === "Color")
+        .forEach((f) => result.push(`${field.name}.${f.name}`));
+    }
+  }
+  return result;
+};
 const configuration_workflow = () =>
   new Workflow({
     steps: [
@@ -150,10 +166,7 @@ const configuration_workflow = () =>
                 sublabel: "A 'Color' field to set the color of this event.",
                 required: false,
                 attributes: {
-                  options: fields
-                    .filter((f) => f.type.name === "Color")
-                    .map((f) => f.name)
-                    .join(),
+                  options: await getColorOptions(fields),
                 },
               },
               {
@@ -167,6 +180,18 @@ const configuration_workflow = () =>
                 },
               },
               {
+                name: "expand_display_mode",
+                label: "Expand display mode",
+                sublabel: "Open the 'expand view' via a link or a pop-up.",
+                type: "String",
+                attributes: {
+                  options: ["link", "pop-up"],
+                },
+                required: true,
+                default: "link",
+                showIf: { expand_view: expand_view_opts },
+              },
+              {
                 name: "view_to_create",
                 label: "Use view to create",
                 sublabel: "View to create a new event. Leave blank to have no link to create a new item",
@@ -174,6 +199,18 @@ const configuration_workflow = () =>
                 attributes: {
                   options: create_view_opts.join(),
                 },
+              },
+              {
+                name: "create_display_mode",
+                label: "Create display mode",
+                sublabel: "Open the 'create view' via a link or a pop-up.",
+                type: "String",
+                attributes: {
+                  options: ["link", "pop-up"],
+                },
+                required: true,
+                default: "link",
+                showIf: { view_to_create: create_view_opts },
               },
             ],
           });
@@ -248,16 +285,14 @@ const configuration_workflow = () =>
                 name: "min_week_view_time",
                 type: "String",
                 label: "Min time in week view",
-                sublabel:
-                  "Min time to display in timeGridWeek, e.g. 08:00",
+                sublabel: "Min time to display in timeGridWeek, e.g. 08:00",
                 required: false,
               },
               {
                 name: "max_week_view_time",
                 type: "String",
                 label: "Max time in week view",
-                sublabel:
-                  "Max time to display in timeGridWeek, e.g. 20:00",
+                sublabel: "Max time to display in timeGridWeek, e.g. 20:00",
                 required: false,
               },
             ],
@@ -310,9 +345,20 @@ const isEmptyDelta = (delta) => {
         delta.milliseconds === 0
     : true;
 };
+const buildJoinFields = (event_color) => {
+  return event_color && event_color.includes(".")
+    ? {
+        _color: {
+          ref: event_color.split(".")[0],
+          target: event_color.split(".")[1],
+        },
+      }
+    : {};
+};
 const eventFromRow = (
   row,
   alwaysAllDay,
+  transferedState,
   {
     expand_view,
     start_field,
@@ -331,8 +377,10 @@ const eventFromRow = (
   const start = row[start_field]; //start = start field
   const allDay = alwaysAllDay || row[allday_field]; //if allday field is "always", allday=true, otherwise use value
   const end = switch_to_duration ? end_by_duration : row[end_field]; // if using duration, show end by duration. otherwise, use end field value.
-  const url = expand_view ? `/view/${expand_view}?id=${row.id}` : undefined; //url to go to when the event is clicked
-  const color = row[event_color];
+  const url = expand_view
+    ? `/view/${expand_view}?id=${row.id}${transferedState || ""}`
+    : undefined; //url to go to when the event is clicked
+  const color = row[event_color.includes(".") ? "_color" : event_color]; // color of the event: uses a table field or the joined '_color' field
   const id = row.id;
   return {
     title: row[title_field],
@@ -368,6 +416,8 @@ const run = async (
     limit_to_working_days,
     min_week_view_time,
     max_week_view_time,
+    expand_display_mode,
+    create_display_mode,
   },
   state,
   extraArgs
@@ -376,24 +426,31 @@ const run = async (
   const fields = await table.getFields();
   readState(state, fields);
   const qstate = await stateFieldsToWhere({ fields, state });
-  const rows = await table.getRows(qstate);
-
+  const rows = await table.getJoinedRows({
+    where: qstate,
+    joinFields: buildJoinFields(event_color),
+  });
   const id = `cal${Math.round(Math.random() * 100000)}`;
   const weekends = limit_to_working_days ? false : true; // fullcalendar flag to filter out weekends
   // parse min/max times or use defaults
   const minAsDate = new Date(`1970-01-01T${min_week_view_time}`);
   const maxAsDate = new Date(`1970-01-01T${max_week_view_time}`);
   const minIsValid = isValidDate(minAsDate);
-  const minTime = minIsValid
-    ? minAsDate.toTimeString()
-    : "00:00:00";
+  const minTime = minIsValid ? minAsDate.toTimeString() : "00:00:00";
   const maxIsValid = isValidDate(maxAsDate);
-  const maxTime = maxIsValid
-    ? maxAsDate.toTimeString()
-    : "24:00:00";
+  const maxTime = maxIsValid ? maxAsDate.toTimeString() : "24:00:00";
   const alwaysAllDay = allday_field === "Always";
+  const transferedState =
+    fields && state
+      ? Object.keys(state)
+          .filter((k) => k !== "id" && fields.find((f) => f.name === k))
+          .map(
+            (k) => `&${encodeURIComponent(k)}=${encodeURIComponent(state[k])}`
+          )
+          .join("")
+      : "";
   const events = rows.map((row) =>
-    eventFromRow(row, alwaysAllDay, {
+    eventFromRow(row, alwaysAllDay, transferedState, {
       expand_view,
       start_field,
       allday_field,
@@ -441,6 +498,8 @@ const run = async (
   const hasWeekendFilter = ${!weekends};
   let timeGridFilterActive = true;
   let dayGridFilterActive = true;
+  const expandInPopup = ${expand_display_mode === "pop-up"};
+  const createInPopup = ${create_display_mode === "pop-up"};
   var calendar = new FullCalendar.Calendar(calendarEl, {
     datesSet: (info) => {
       let filterBtn = "";
@@ -454,7 +513,7 @@ const run = async (
         filterBtn = dayGridFilterActive ? " disableFilter" : " enableFilter";
       }      
       const toolbar = calendar.getOption("headerToolbar");
-      toolbar.left = "prev,next today add" + filterBtn;
+      toolbar.left = "prev,next today${view_to_create ? " add" : ""}" + filterBtn;
       calendar.setOption("headerToolbar", toolbar);
     },
     locale: locale,
@@ -469,14 +528,18 @@ const run = async (
     nowIndicator: ${nowIndicator},
     weekNumbers: ${weekNumbers},
     eventColor: '${default_event_color}',
-    ${view_to_create ? `
     customButtons: {
+      ${view_to_create ? `
       add: {
         text: 'add',
         click: function() {
-          location.href='/view/${view_to_create}';
+          const newHref = '/view/${view_to_create}';
+          if (createInPopup) ajax_modal(newHref);
+          else location.href = newHref;
         }
       },
+      ` : ""}
+      ${(maxIsValid || minIsValid || !weekends) ? `
       disableFilter: {
         text: "show all times",
         click: function() {
@@ -496,7 +559,7 @@ const run = async (
           calendar.setOption("views", viewOpts);
           // update toolbar
           const toolbar = calendar.getOption("headerToolbar");
-          toolbar.left = "prev,next today add enableFilter";
+          toolbar.left = "prev,next today${view_to_create ? " add" : ""} enableFilter";
           calendar.setOption("headerToolbar", toolbar);
         },
       },
@@ -523,15 +586,35 @@ const run = async (
           calendar.setOption("views", viewOpts);
           // update toolbar
           const toolbar = calendar.getOption("headerToolbar");
-          toolbar.left = "prev,next today add disableFilter";
+          toolbar.left = "prev,next today${view_to_create ? " add" : ""} disableFilter";
           calendar.setOption("headerToolbar", toolbar);
         },
       },
+    `: ""}
     },
+    ${view_to_create ? `
     selectable: true,
     select: function(info) {
-      location.href='/view/${view_to_create}?${start_field}=' + info.startStr ${end_field ? (`+ '&` + end_field + `=' + info.endStr`) : ""};
-    },` : "" }
+      let url = '/view/${view_to_create}?${start_field}=' + encodeURIComponent(info.startStr) ${
+            end_field
+              ? `+ '&` + end_field + `=' + encodeURIComponent(info.endStr)`
+              : ""
+          };
+      const urlSearchParams = new URLSearchParams(window.location.search);
+      urlSearchParams.delete("${start_field}");
+      urlSearchParams.delete("id");
+      ${
+        end_field 
+          ? `urlSearchParams.delete('${end_field}');`
+          : ""
+      }
+      if (Array.from(urlSearchParams.entries()).length > 0) {
+        url += "&" + urlSearchParams.toString();
+      }
+      if (createInPopup) ajax_modal(url);
+      else location.href = url;
+    },` : ""}
+
     events: ${JSON.stringify(events)},
     editable: true, 
     eventResizableFromStart: isResizeable,
@@ -544,7 +627,9 @@ const run = async (
           if(res.error) info.revert();
           else if (res.newEvent) {
             info.event.remove();
-            calendar.addEvent(res.newEvent);
+            const newEvent = res.newEvent;
+            newEvent.url = info.oldEvent.url;
+            calendar.addEvent(newEvent);
           }
         }
       );
@@ -568,10 +653,18 @@ const run = async (
             if (res.error) info.revert();
             else if (res.newEvent) {
               info.event.remove();
-              calendar.addEvent(res.newEvent);
-            } 
+              const newEvent = res.newEvent;
+              newEvent.url = info.oldEvent.url;
+              calendar.addEvent(newEvent);
+            }
           }
         );
+      }
+    },
+    eventClick: (info) => {
+      if (expandInPopup && info.event.url) {
+        info.jsEvent.preventDefault(); // don't let the browser navigate
+        ajax_modal(info.event.url);
       }
     },
     views: {
@@ -651,20 +744,28 @@ const update_calendar_event = async (
   }
   if (Object.keys(updateVals).length !== 0)
     await table.updateRow(updateVals, rowId, req.user.id);
-  const updatedRow = await table.getRow({ id: rowId });
+  const updatedRow = await table.getJoinedRows({
+    where: { id: rowId },
+    joinFields: buildJoinFields(event_color),
+  });
   return {
     json: {
-      newEvent: eventFromRow(updatedRow, allday_field === "Always", {
-        expand_view,
-        start_field,
-        allday_field,
-        end_field,
-        duration_field,
-        duration_units,
-        switch_to_duration,
-        title_field,
-        event_color,
-      }),
+      newEvent: eventFromRow(
+        updatedRow[0],
+        allday_field === "Always",
+        undefined,
+        {
+          expand_view,
+          start_field,
+          allday_field,
+          end_field,
+          duration_field,
+          duration_units,
+          switch_to_duration,
+          title_field,
+          event_color,
+        }
+      ),
     },
   };
 };
