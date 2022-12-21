@@ -600,17 +600,6 @@ const run = async (
               ? `+ '&` + end_field + `=' + encodeURIComponent(info.endStr)`
               : ""
           };
-      const urlSearchParams = new URLSearchParams(window.location.search);
-      urlSearchParams.delete("${start_field}");
-      urlSearchParams.delete("id");
-      ${
-        end_field 
-          ? `urlSearchParams.delete('${end_field}');`
-          : ""
-      }
-      if (Array.from(urlSearchParams.entries()).length > 0) {
-        url += "&" + urlSearchParams.toString();
-      }
       if (createInPopup) ajax_modal(url);
       else location.href = url;
     },` : ""}
