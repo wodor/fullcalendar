@@ -192,6 +192,18 @@ const configuration_workflow = () =>
                 showIf: { expand_view: expand_view_opts },
               },
               {
+                name: "reload_on_edit_in_pop_up",
+                label: "Reload on edit",
+                sublabel:
+                  "After editing an event in a pop-up, reload the page. " +
+                  "Otherwise, it updates only the calendar.",
+                type: "Bool",
+                default: false,
+                showIf: {
+                  expand_display_mode: "pop-up",
+                },
+              },
+              {
                 name: "view_to_create",
                 label: "Use view to create",
                 sublabel: "View to create a new event. Leave blank to have no link to create a new item",
@@ -211,6 +223,15 @@ const configuration_workflow = () =>
                 required: true,
                 default: "link",
                 showIf: { view_to_create: create_view_opts },
+              },
+              {
+                name: "reload_on_drag_resize",
+                label: "Reload on drag / resize",
+                sublabel:
+                  "After dropping or resizing an event, reload the page. " +
+                  "Otherwise, it updates only the calendar.",
+                type: "Bool",
+                default: false,
               },
             ],
           });
@@ -418,6 +439,8 @@ const run = async (
     max_week_view_time,
     expand_display_mode,
     create_display_mode,
+    reload_on_edit_in_pop_up,
+    reload_on_drag_resize,
   },
   state,
   extraArgs
@@ -612,14 +635,18 @@ const run = async (
       const rowId = info.event.id;
       const dataObj = { rowId, start: info.event.start, end: info.event.end, };
       view_post('${viewname}', 'update_calendar_event', dataObj,
-        (res) => { 
+        (res) => {
+      ${reload_on_drag_resize 
+        ? `
+          location.reload();`
+        : `
           if(res.error) info.revert();
           else if (res.newEvent) {
             info.event.remove();
             const newEvent = res.newEvent;
             newEvent.url = info.oldEvent.url;
             calendar.addEvent(newEvent);
-          }
+          }`}
         }
       );
     },
@@ -638,14 +665,19 @@ const run = async (
           start: info.event.start, end: info.event.end,
         };
         view_post('${viewname}', 'update_calendar_event', dataObj,
-          (res) => { 
-            if (res.error) info.revert();
+          (res) => {
+        ${
+          reload_on_drag_resize
+            ? `
+            location.reload();`
+            : `
+            if(res.error) info.revert();
             else if (res.newEvent) {
               info.event.remove();
               const newEvent = res.newEvent;
               newEvent.url = info.oldEvent.url;
               calendar.addEvent(newEvent);
-            }
+            }`}
           }
         );
       }
@@ -653,7 +685,37 @@ const run = async (
     eventClick: (info) => {
       if (expandInPopup && info.event.url) {
         info.jsEvent.preventDefault(); // don't let the browser navigate
-        ajax_modal(info.event.url);
+        const opts = ${
+          reload_on_edit_in_pop_up
+            ? "{ submitReload: true }"
+            : `{
+          submitReload: false,
+          onClose: () => {
+            $.ajax("/view/${viewname}/load_calendar_event", {
+              dataType: "json",
+              type: "POST",
+              headers: {
+                "CSRF-Token": _sc_globalCsrf,
+              },
+              data: { rowId: info.event.id },
+            })
+            .done((res) => {
+              const updated = res.newEvent;
+              updated.url = info.event.url;
+              info.event.remove();
+              $("#scmodal").remove();
+              calendar.addEvent(updated);
+            })
+            .fail((res) => {
+              notifyAlert({ 
+                type: "danger", 
+                text: "An error occurred",
+              });
+            });
+          },
+        }`
+        };
+        ajax_modal(info.event.url, opts);
       }
     },
     views: {
@@ -666,7 +728,70 @@ const run = async (
     div({ id })
   );
 };
+/*
+ * internal helper to build a response with the updated event
+ */
+const buildResponse = async (
+  table,
+  rowId,
+  {
+    expand_view,
+    start_field,
+    allday_field,
+    end_field,
+    duration_field,
+    duration_units,
+    switch_to_duration,
+    title_field,
+    event_color,
+  }
+) => {
+  const updatedRow = await table.getJoinedRows({
+    where: { id: rowId },
+    joinFields: buildJoinFields(event_color),
+  });
+  return {
+    json: {
+      newEvent: eventFromRow(
+        updatedRow[0],
+        allday_field === "Always",
+        undefined,
+        {
+          expand_view,
+          start_field,
+          allday_field,
+          end_field,
+          duration_field,
+          duration_units,
+          switch_to_duration,
+          title_field,
+          event_color,
+        }
+      ),
+    },
+  };
+};
 
+/*
+ * service to load a calendar event from the db
+ */
+const load_calendar_event = async (
+  table_id,
+  viewname,
+  config,
+  { rowId },
+  { req }
+) => {
+  const table = await Table.findOne({ id: table_id });
+  const role = req.isAuthenticated() ? req.user.role_id : 10;
+  if (role > table.min_role_write) {
+    return { json: { error: req.__("Not authorized") } };
+  }
+  return await buildResponse(table, rowId, config);
+};
+/*
+ * service to update a calendar event in the db
+*/
 const update_calendar_event = async (
   table_id,
   viewname,
@@ -733,30 +858,17 @@ const update_calendar_event = async (
   }
   if (Object.keys(updateVals).length !== 0)
     await table.updateRow(updateVals, rowId, req.user.id);
-  const updatedRow = await table.getJoinedRows({
-    where: { id: rowId },
-    joinFields: buildJoinFields(event_color),
+  return await buildResponse(table, rowId, {
+    expand_view,
+    start_field,
+    allday_field,
+    end_field,
+    duration_field,
+    duration_units,
+    switch_to_duration,
+    title_field,
+    event_color,
   });
-  return {
-    json: {
-      newEvent: eventFromRow(
-        updatedRow[0],
-        allday_field === "Always",
-        undefined,
-        {
-          expand_view,
-          start_field,
-          allday_field,
-          end_field,
-          duration_field,
-          duration_units,
-          switch_to_duration,
-          title_field,
-          event_color,
-        }
-      ),
-    },
-  };
 };
 const headers = [
   {
@@ -782,7 +894,7 @@ module.exports = {
       get_state_fields,
       configuration_workflow,
       run,
-      routes: { update_calendar_event },
+      routes: { update_calendar_event, load_calendar_event },
     },
   ],
 };
