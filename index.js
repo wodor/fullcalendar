@@ -70,6 +70,15 @@ const configuration_workflow = () =>
           );
           const create_view_opts = create_views.map((v) => v.name);
 
+          const event_views = await View.find_table_views_where(
+            context.table_id,
+            ({ viewtemplate, viewrow }) => 
+              viewrow.name !== context.viewname &&
+              viewtemplate?.name !== "Calendar" &&
+              viewtemplate?.name !== "Edit"
+          );
+          const event_views_opts = event_views.map((v) => v.name);
+
           return new Form({
             fields: [
               {
@@ -225,6 +234,19 @@ const configuration_workflow = () =>
                 showIf: { view_to_create: create_view_opts },
               },
               {
+                name: "event_view",
+                label: "Event view",
+                sublabel:
+                  "This view will be drawn on top of events instead of the default title. " +
+                  "Please use a small view, preferably only with rudimental display elements. " +
+                  "Overflows won't be shown.",
+                type: "String",
+                required: false,
+                attributes: {
+                  options: event_views_opts.join(),
+                },
+              },
+              {
                 name: "reload_on_drag_resize",
                 label: "Reload on drag / resize",
                 sublabel:
@@ -376,10 +398,12 @@ const buildJoinFields = (event_color) => {
       }
     : {};
 };
-const eventFromRow = (
+const eventFromRow = async (
   row,
   alwaysAllDay,
   transferedState,
+  eventView,
+  req,
   {
     expand_view,
     start_field,
@@ -401,8 +425,15 @@ const eventFromRow = (
   const url = expand_view
     ? `/view/${expand_view}?id=${row.id}${transferedState || ""}`
     : undefined; //url to go to when the event is clicked
-  const color = row[event_color.includes(".") ? "_color" : event_color]; // color of the event: uses a table field or the joined '_color' field
+  const color =
+    row[event_color && event_color.includes(".") ? "_color" : event_color]; // color of the event: uses a table field or the joined '_color' field
   const id = row.id;
+  const eventHtml = eventView
+    ? `<div style="overflow: hidden;">${await eventView.run(
+        { id: row.id },
+        { req }
+      )}</div>`
+    : undefined;
   return {
     title: row[title_field],
     start,
@@ -411,6 +442,7 @@ const eventFromRow = (
     url,
     color,
     id,
+    eventHtml,
   };
 };
 
@@ -440,6 +472,7 @@ const run = async (
     expand_display_mode,
     create_display_mode,
     reload_on_edit_in_pop_up,
+    event_view,
     reload_on_drag_resize,
   },
   state,
@@ -472,18 +505,30 @@ const run = async (
           )
           .join("")
       : "";
-  const events = rows.map((row) =>
-    eventFromRow(row, alwaysAllDay, transferedState, {
-      expand_view,
-      start_field,
-      allday_field,
-      end_field,
-      duration_field,
-      duration_units,
-      switch_to_duration,
-      title_field,
-      event_color,
-    })
+  const eventView = event_view
+    ? await View.findOne({ name: event_view })
+    : undefined;
+  const events = await Promise.all(
+    rows.map((row) =>
+      eventFromRow(
+        row,
+        alwaysAllDay,
+        transferedState,
+        eventView,
+        extraArgs.req,
+        {
+          expand_view,
+          start_field,
+          allday_field,
+          end_field,
+          duration_field,
+          duration_units,
+          switch_to_duration,
+          title_field,
+          event_color,
+        }
+      )
+    )
   );
   return div(
     script(
@@ -523,7 +568,14 @@ const run = async (
   let dayGridFilterActive = true;
   const expandInPopup = ${expand_display_mode === "pop-up"};
   const createInPopup = ${create_display_mode === "pop-up"};
+  function addOverflowHidden() {
+    $(".fc-event-main:not([class*='overflow-hidden'])").addClass("overflow-hidden"); 
+  }
   var calendar = new FullCalendar.Calendar(calendarEl, {
+    eventContent: function(arg) {
+      if (!arg.event.extendedProps?.eventHtml) return;
+      else return { html: arg.event.extendedProps.eventHtml };
+    },
     datesSet: (info) => {
       let filterBtn = "";
       if (
@@ -538,6 +590,7 @@ const run = async (
       const toolbar = calendar.getOption("headerToolbar");
       toolbar.left = "prev,next today${view_to_create ? " add" : ""}" + filterBtn;
       calendar.setOption("headerToolbar", toolbar);
+      addOverflowHidden();
     },
     locale: locale,
     headerToolbar: {
@@ -646,6 +699,7 @@ const run = async (
             const newEvent = res.newEvent;
             newEvent.url = info.oldEvent.url;
             calendar.addEvent(newEvent);
+            addOverflowHidden();
           }`}
         }
       );
@@ -657,6 +711,7 @@ const run = async (
           text: "Setting a time is not allowed when 'All-day' is set to 'Always'.",
         });
         info.revert();
+        addOverflowHidden();
       }
       else {
         const rowId = info.event.id;
@@ -677,6 +732,7 @@ const run = async (
               const newEvent = res.newEvent;
               newEvent.url = info.oldEvent.url;
               calendar.addEvent(newEvent);
+              addOverflowHidden();
             }`}
           }
         );
@@ -705,6 +761,7 @@ const run = async (
               info.event.remove();
               $("#scmodal").remove();
               calendar.addEvent(updated);
+              addOverflowHidden();
             })
             .fail((res) => {
               notifyAlert({ 
@@ -734,6 +791,7 @@ const run = async (
 const buildResponse = async (
   table,
   rowId,
+  req,
   {
     expand_view,
     start_field,
@@ -744,18 +802,24 @@ const buildResponse = async (
     switch_to_duration,
     title_field,
     event_color,
+    event_view,
   }
 ) => {
   const updatedRow = await table.getJoinedRows({
     where: { id: rowId },
     joinFields: buildJoinFields(event_color),
   });
+  const eventView = event_view 
+    ? await View.findOne({name: event_view}) 
+    : undefined;
   return {
     json: {
-      newEvent: eventFromRow(
+      newEvent: await eventFromRow(
         updatedRow[0],
         allday_field === "Always",
         undefined,
+        eventView,
+        req,
         {
           expand_view,
           start_field,
@@ -787,7 +851,7 @@ const load_calendar_event = async (
   if (role > table.min_role_write) {
     return { json: { error: req.__("Not authorized") } };
   }
-  return await buildResponse(table, rowId, config);
+  return await buildResponse(table, rowId, req, config);
 };
 /*
  * service to update a calendar event in the db
@@ -805,6 +869,7 @@ const update_calendar_event = async (
     expand_view,
     title_field,
     event_color,
+    event_view,
   },
   { rowId, delta, allDay, start, end },
   { req }
@@ -858,7 +923,7 @@ const update_calendar_event = async (
   }
   if (Object.keys(updateVals).length !== 0)
     await table.updateRow(updateVals, rowId, req.user.id);
-  return await buildResponse(table, rowId, {
+  return await buildResponse(table, rowId, req, {
     expand_view,
     start_field,
     allday_field,
@@ -868,9 +933,13 @@ const update_calendar_event = async (
     switch_to_duration,
     title_field,
     event_color,
+    event_view,
   });
 };
 const headers = [
+  {
+    headerTag: "<style> div.fc a { color: inherit; } </style>",
+  },
   {
     script: "/plugins/public/fullcalendar/main.min.js",
   },
