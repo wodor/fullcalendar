@@ -129,7 +129,11 @@ const configuration_workflow = () =>
                 required: false,
                 attributes: {
                   options: fields
-                    .filter((f) => f.type.name === "Int" || f.type.name === "Float")
+                    .filter(
+                      (f) =>
+                        f.name !== "id" &&
+                        (f.type.name === "Integer" || f.type.name === "Float")
+                    )
                     .map((f) => f.name)
                     .join(),
                 },
@@ -445,6 +449,25 @@ const eventFromRow = async (
     eventHtml,
   };
 };
+const buildTransferedState = (fields, state, excluded) => {
+  return fields && state
+    ? Object.keys(state)
+        .filter(
+          (k) =>
+            k !== "id" &&
+            fields.find((f) => f.name === k) &&
+            (excluded ? excluded.indexOf(k) < 0 : true)
+        )
+        .map((k) => `&${encodeURIComponent(k)}=${encodeURIComponent(state[k])}`)
+        .join("")
+    : "";
+};
+const durationIsFloat = (fields, duration_field) => {
+  const field = fields.find((f) => f.name === duration_field);
+  if (!field) return false;
+  else
+    return field.type.name === "Float";
+};
 
 const run = async (
   table_id,
@@ -496,15 +519,10 @@ const run = async (
   const maxIsValid = isValidDate(maxAsDate);
   const maxTime = maxIsValid ? maxAsDate.toTimeString() : "24:00:00";
   const alwaysAllDay = allday_field === "Always";
-  const transferedState =
-    fields && state
-      ? Object.keys(state)
-          .filter((k) => k !== "id" && fields.find((f) => f.name === k))
-          .map(
-            (k) => `&${encodeURIComponent(k)}=${encodeURIComponent(state[k])}`
-          )
-          .join("")
-      : "";
+  const transferedState = buildTransferedState(fields, state);
+  const excluded = [start_field];
+  if (end_field) excluded.push(end_field);
+  const transferedSelectState = buildTransferedState(fields, state, excluded);
   const eventView = event_view
     ? await View.findOne({ name: event_view })
     : undefined;
@@ -571,6 +589,18 @@ const run = async (
   function addOverflowHidden() {
     $(".fc-event-main:not([class*='overflow-hidden'])").addClass("overflow-hidden"); 
   }
+  ${
+    (switch_to_duration && duration_field) 
+      ? `
+  function durationFromInfo(info) {
+    const isFloat = ${durationIsFloat(fields, duration_field)};
+    const startAsDate = new Date(info.startStr);
+    const endAsDate = new Date(info.endStr);
+    const result = (endAsDate - startAsDate) / 1000 / ${unitSeconds(duration_units)};
+    return isFloat ? result : Math.trunc(result);
+  }` 
+  : ""
+  }
   var calendar = new FullCalendar.Calendar(calendarEl, {
     eventContent: function(arg) {
       if (!arg.event.extendedProps?.eventHtml) return;
@@ -609,7 +639,9 @@ const run = async (
       add: {
         text: 'add',
         click: function() {
-          const newHref = '/view/${view_to_create}';
+          const newHref = '/view/${view_to_create}${
+              transferedState ? "?" + transferedState.substring(1) : ""
+            }';
           if (createInPopup) ajax_modal(newHref);
           else location.href = newHref;
         }
@@ -672,10 +704,18 @@ const run = async (
     selectable: true,
     select: function(info) {
       let url = '/view/${view_to_create}?${start_field}=' + encodeURIComponent(info.startStr) ${
-            end_field
-              ? `+ '&` + end_field + `=' + encodeURIComponent(info.endStr)`
-              : ""
-          };
+        end_field
+          ? `+ '&` + end_field + `=' + encodeURIComponent(info.endStr)`
+          : ""
+      }
+      ${
+        (switch_to_duration && duration_field)
+          ? `+ '&` + duration_field + 
+            `=' + durationFromInfo(info)`
+          : ""
+      }
+      ${"+" + `'${transferedSelectState}'`};
+
       if (createInPopup) ajax_modal(url);
       else location.href = url;
     },` : ""}
@@ -908,13 +948,17 @@ const update_calendar_event = async (
     updateVals[start_field] = startAsDate;
   const endAsDate = end ? new Date(end) : null;
   if (switch_to_duration) {
+    const isFloat = duration_field && durationIsFloat(fields, duration_field);
     if (isValidDate(endAsDate) && isValidDate(startAsDate)) {
       const unitSecs = unitSeconds(duration_units);
-      const newDuration = Math.trunc(
-        (endAsDate - startAsDate) / 1000 / unitSecs
-      );
+      const floatDuration = (endAsDate - startAsDate) / 1000 / unitSecs;
+      const newDuration = isFloat ? floatDuration : Math.trunc(floatDuration);
       const oldDuration = row[duration_field];
-      if (newDuration !== oldDuration) updateVals[duration_field] = newDuration;
+      if (
+        (!isFloat && newDuration !== oldDuration) ||
+        (isFloat && Math.abs(newDuration - oldDuration) > Number.EPSILON)
+      )
+        updateVals[duration_field] = newDuration;
     }
   } else if (end_field && isValidDate(endAsDate)) {
     updateVals[end_field] = endAsDate;
@@ -922,7 +966,7 @@ const update_calendar_event = async (
     updateVals[end_field] = applyDelta(row[end_field], delta);
   }
   if (Object.keys(updateVals).length !== 0)
-    await table.updateRow(updateVals, rowId, req.user.id);
+    await table.updateRow(updateVals, rowId, req.user);
   return await buildResponse(table, rowId, req, {
     expand_view,
     start_field,
