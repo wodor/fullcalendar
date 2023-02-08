@@ -433,10 +433,14 @@ const eventFromRow = async (
     row[event_color && event_color.includes(".") ? "_color" : event_color]; // color of the event: uses a table field or the joined '_color' field
   const id = row.id;
   const eventHtml = eventView
-    ? `<div style="overflow: hidden;">${await eventView.run(
-        { id: row.id },
-        { req }
-      )}</div>`
+    ? `<div style="overflow: hidden;">
+        ${url ? `<a href="${url}" class="decoration-none">` : ""}
+          ${await eventView.run(
+            { id: row.id },
+            { req }
+          )}
+          ${url ? "</a>" : ""}
+      </div>`
     : undefined;
   return {
     title: row[title_field],
@@ -982,7 +986,11 @@ const update_calendar_event = async (
 };
 const headers = [
   {
-    headerTag: "<style> div.fc a { color: inherit; } </style>",
+    headerTag: `
+    <style> 
+      div.fc a { color: inherit; } 
+      .decoration-none:hover { text-decoration: none; }
+    </style>`,
   },
   {
     script: "/plugins/public/fullcalendar/main.min.js",
