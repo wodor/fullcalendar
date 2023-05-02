@@ -18,6 +18,10 @@ const {
   domReady,
   i,
 } = require("@saltcorn/markup/tags");
+
+const { features } = require("@saltcorn/data/db/state");
+const public_user_role = features?.public_user_role || 10;
+
 const readState = (state, fields) => {
   fields.forEach((f) => {
     const current = state[f.name];
@@ -72,7 +76,7 @@ const configuration_workflow = () =>
 
           const event_views = await View.find_table_views_where(
             context.table_id,
-            ({ viewtemplate, viewrow }) => 
+            ({ viewtemplate, viewrow }) =>
               viewrow.name !== context.viewname &&
               viewtemplate?.name !== "Calendar" &&
               viewtemplate?.name !== "Edit"
@@ -85,7 +89,8 @@ const configuration_workflow = () =>
                 name: "title_field",
                 label: "Event title field",
                 type: "String",
-                sublabel: "A string for the event name displayed on the calendar.",
+                sublabel:
+                  "A string for the event name displayed on the calendar.",
                 required: true,
                 attributes: {
                   options: fields
@@ -119,13 +124,14 @@ const configuration_workflow = () =>
                     .map((f) => f.name)
                     .join(),
                 },
-                showIf: {switch_to_duration: false},
+                showIf: { switch_to_duration: false },
               },
               {
                 name: "duration_field",
                 label: "Duration",
                 type: "String",
-                sublabel: "An 'Int' or 'Float' field for the duration of the event.",
+                sublabel:
+                  "An 'Int' or 'Float' field for the duration of the event.",
                 required: false,
                 attributes: {
                   options: fields
@@ -137,7 +143,7 @@ const configuration_workflow = () =>
                     .map((f) => f.name)
                     .join(),
                 },
-                showIf: {switch_to_duration: true},
+                showIf: { switch_to_duration: true },
               },
               {
                 name: "duration_units",
@@ -148,7 +154,7 @@ const configuration_workflow = () =>
                 attributes: {
                   options: "Seconds,Minutes,Hours,Days",
                 },
-                showIf: {switch_to_duration: true},
+                showIf: { switch_to_duration: true },
               },
               {
                 name: "switch_to_duration",
@@ -161,7 +167,8 @@ const configuration_workflow = () =>
                 name: "allday_field",
                 type: "String",
                 label: "All-day field",
-                sublabel: "Boolean field to specify whether this is an all-day event.",
+                sublabel:
+                  "Boolean field to specify whether this is an all-day event.",
                 required: false,
                 attributes: {
                   options: [
@@ -185,7 +192,8 @@ const configuration_workflow = () =>
               {
                 name: "expand_view",
                 label: "Expand View",
-                sublabel: "The view that opens when the user clicks on an event.",
+                sublabel:
+                  "The view that opens when the user clicks on an event.",
                 type: "String",
                 required: false,
                 attributes: {
@@ -219,7 +227,8 @@ const configuration_workflow = () =>
               {
                 name: "view_to_create",
                 label: "Use view to create",
-                sublabel: "View to create a new event. Leave blank to have no link to create a new item",
+                sublabel:
+                  "View to create a new event. Leave blank to have no link to create a new item",
                 type: "String",
                 attributes: {
                   options: create_view_opts.join(),
@@ -273,7 +282,8 @@ const configuration_workflow = () =>
                 name: "initialView",
                 type: "String",
                 label: "Initial calendar view",
-                sublabel: "The default calendar view shown when the calendar is loaded. Options: dayGridMonth,dayGridDay,dayGridWeek,timeGridWeek,timeGridDay,listDay,listWeek,listMonth,listYear. Default: 'dayGridMonth'.",
+                sublabel:
+                  "The default calendar view shown when the calendar is loaded. Options: dayGridMonth,dayGridDay,dayGridWeek,timeGridWeek,timeGridDay,listDay,listWeek,listMonth,listYear. Default: 'dayGridMonth'.",
                 required: true,
                 default: "dayGridMonth",
               },
@@ -281,7 +291,8 @@ const configuration_workflow = () =>
                 name: "calendar_view_options",
                 type: "String",
                 label: "Calendar view options",
-                sublabel: "The view options displayed on the calendar. Separate the options with a comma for a button group, or with a space for separate buttons. Accepts the same options as above. Default: 'dayGridMonth,timeGridWeek,listMonth'.",
+                sublabel:
+                  "The view options displayed on the calendar. Separate the options with a comma for a button group, or with a space for separate buttons. Accepts the same options as above. Default: 'dayGridMonth,timeGridWeek,listMonth'.",
                 required: true,
                 default: "dayGridMonth,timeGridWeek,listMonth",
               },
@@ -289,7 +300,8 @@ const configuration_workflow = () =>
                 name: "custom_calendar_views",
                 type: "String",
                 label: "Advanced: Custom calendar views",
-                sublabel: "Optionally define your own custom calendar views. Provide a FullCalendar views object. See https://github.com/saltcorn/fullcalendar/blob/main/README.md.",
+                sublabel:
+                  "Optionally define your own custom calendar views. Provide a FullCalendar views object. See https://github.com/saltcorn/fullcalendar/blob/main/README.md.",
                 required: false,
                 input_type: "code",
                 attributes: { mode: "application/javascript" },
@@ -298,7 +310,8 @@ const configuration_workflow = () =>
                 name: "nowIndicator",
                 type: "Bool",
                 label: "Current time indicator",
-                sublabel: "Display a line to indicate the current time on day and week views",
+                sublabel:
+                  "Display a line to indicate the current time on day and week views",
                 required: true,
                 default: true,
               },
@@ -314,7 +327,8 @@ const configuration_workflow = () =>
                 name: "default_event_color",
                 type: "String",
                 label: "Default event color",
-                sublabel: "The default color of calendar events. Accepts any valid CSS color value. Examples: #af2d8b, rgb(124, 0, 201), RoyalBlue.",
+                sublabel:
+                  "The default color of calendar events. Accepts any valid CSS color value. Examples: #af2d8b, rgb(124, 0, 201), RoyalBlue.",
                 required: true,
                 default: "#4e73df",
               },
@@ -357,7 +371,8 @@ const get_state_fields = async (table_id, viewname, { show_view }) => {
     return sf;
   });
 };
-function addSeconds (date, secs) { // adds seconds to date and returns new date
+function addSeconds(date, secs) {
+  // adds seconds to date and returns new date
   const r = new Date(date);
   r.setSeconds(r.getSeconds() + secs);
   return r;
@@ -435,10 +450,7 @@ const eventFromRow = async (
   const eventHtml = eventView
     ? `<div style="overflow: hidden;">
         ${url ? `<a href="${url}" class="decoration-none">` : ""}
-          ${await eventView.run(
-            { id: row.id },
-            { req }
-          )}
+          ${await eventView.run({ id: row.id }, { req })}
           ${url ? "</a>" : ""}
       </div>`
     : undefined;
@@ -469,8 +481,7 @@ const buildTransferedState = (fields, state, excluded) => {
 const durationIsFloat = (fields, duration_field) => {
   const field = fields.find((f) => f.name === duration_field);
   if (!field) return false;
-  else
-    return field.type.name === "Float";
+  else return field.type.name === "Float";
 };
 
 const run = async (
@@ -594,16 +605,18 @@ const run = async (
     $(".fc-event-main:not([class*='overflow-hidden'])").addClass("overflow-hidden"); 
   }
   ${
-    (switch_to_duration && duration_field) 
+    switch_to_duration && duration_field
       ? `
   function durationFromInfo(info) {
     const isFloat = ${durationIsFloat(fields, duration_field)};
     const startAsDate = new Date(info.startStr);
     const endAsDate = new Date(info.endStr);
-    const result = (endAsDate - startAsDate) / 1000 / ${unitSeconds(duration_units)};
+    const result = (endAsDate - startAsDate) / 1000 / ${unitSeconds(
+      duration_units
+    )};
     return isFloat ? result : Math.trunc(result);
-  }` 
-  : ""
+  }`
+      : ""
   }
   var calendar = new FullCalendar.Calendar(calendarEl, {
     eventContent: function(arg) {
@@ -622,7 +635,9 @@ const run = async (
         filterBtn = dayGridFilterActive ? " disableFilter" : " enableFilter";
       }      
       const toolbar = calendar.getOption("headerToolbar");
-      toolbar.left = "prev,next today${view_to_create ? " add" : ""}" + filterBtn;
+      toolbar.left = "prev,next today${
+        view_to_create ? " add" : ""
+      }" + filterBtn;
       calendar.setOption("headerToolbar", toolbar);
       addOverflowHidden();
     },
@@ -639,7 +654,9 @@ const run = async (
     weekNumbers: ${weekNumbers},
     eventColor: '${default_event_color}',
     customButtons: {
-      ${view_to_create ? `
+      ${
+        view_to_create
+          ? `
       add: {
         text: 'add',
         click: function() {
@@ -650,8 +667,12 @@ const run = async (
           else location.href = newHref;
         }
       },
-      ` : ""}
-      ${(maxIsValid || minIsValid || !weekends) ? `
+      `
+          : ""
+      }
+      ${
+        maxIsValid || minIsValid || !weekends
+          ? `
       disableFilter: {
         text: "show all times",
         click: function() {
@@ -671,7 +692,9 @@ const run = async (
           calendar.setOption("views", viewOpts);
           // update toolbar
           const toolbar = calendar.getOption("headerToolbar");
-          toolbar.left = "prev,next today${view_to_create ? " add" : ""} enableFilter";
+          toolbar.left = "prev,next today${
+            view_to_create ? " add" : ""
+          } enableFilter";
           calendar.setOption("headerToolbar", toolbar);
         },
       },
@@ -698,31 +721,38 @@ const run = async (
           calendar.setOption("views", viewOpts);
           // update toolbar
           const toolbar = calendar.getOption("headerToolbar");
-          toolbar.left = "prev,next today${view_to_create ? " add" : ""} disableFilter";
+          toolbar.left = "prev,next today${
+            view_to_create ? " add" : ""
+          } disableFilter";
           calendar.setOption("headerToolbar", toolbar);
         },
       },
-    `: ""}
+    `
+          : ""
+      }
     },
-    ${view_to_create ? `
+    ${
+      view_to_create
+        ? `
     selectable: true,
     select: function(info) {
       let url = '/view/${view_to_create}?${start_field}=' + encodeURIComponent(info.startStr) ${
-        end_field
-          ? `+ '&` + end_field + `=' + encodeURIComponent(info.endStr)`
-          : ""
-      }
+            end_field
+              ? `+ '&` + end_field + `=' + encodeURIComponent(info.endStr)`
+              : ""
+          }
       ${
-        (switch_to_duration && duration_field)
-          ? `+ '&` + duration_field + 
-            `=' + durationFromInfo(info)`
+        switch_to_duration && duration_field
+          ? `+ '&` + duration_field + `=' + durationFromInfo(info)`
           : ""
       }
       ${"+" + `'${transferedSelectState}'`};
 
       if (createInPopup) ajax_modal(url);
       else location.href = url;
-    },` : ""}
+    },`
+        : ""
+    }
 
     events: ${JSON.stringify(events)},
     editable: true, 
@@ -733,10 +763,11 @@ const run = async (
       const dataObj = { rowId, start: info.event.start, end: info.event.end, };
       view_post('${viewname}', 'update_calendar_event', dataObj,
         (res) => {
-      ${reload_on_drag_resize 
-        ? `
+      ${
+        reload_on_drag_resize
+          ? `
           location.reload();`
-        : `
+          : `
           if(res.error) info.revert();
           else if (res.newEvent) {
             info.event.remove();
@@ -744,7 +775,8 @@ const run = async (
             newEvent.url = info.oldEvent.url;
             calendar.addEvent(newEvent);
             addOverflowHidden();
-          }`}
+          }`
+      }
         }
       );
     },
@@ -777,7 +809,8 @@ const run = async (
               newEvent.url = info.oldEvent.url;
               calendar.addEvent(newEvent);
               addOverflowHidden();
-            }`}
+            }`
+        }
           }
         );
       }
@@ -853,8 +886,8 @@ const buildResponse = async (
     where: { id: rowId },
     joinFields: buildJoinFields(event_color),
   });
-  const eventView = event_view 
-    ? await View.findOne({name: event_view}) 
+  const eventView = event_view
+    ? await View.findOne({ name: event_view })
     : undefined;
   return {
     json: {
@@ -891,7 +924,7 @@ const load_calendar_event = async (
   { req }
 ) => {
   const table = await Table.findOne({ id: table_id });
-  const role = req.isAuthenticated() ? req.user.role_id : 10;
+  const role = req.isAuthenticated() ? req.user.role_id : public_user_role;
   if (role > table.min_role_write) {
     return { json: { error: req.__("Not authorized") } };
   }
@@ -899,7 +932,7 @@ const load_calendar_event = async (
 };
 /*
  * service to update a calendar event in the db
-*/
+ */
 const update_calendar_event = async (
   table_id,
   viewname,
@@ -919,7 +952,7 @@ const update_calendar_event = async (
   { req }
 ) => {
   const table = await Table.findOne({ id: table_id });
-  const role = req.isAuthenticated() ? req.user.role_id : 10;
+  const role = req.isAuthenticated() ? req.user.role_id : public_user_role;
   if (role > table.min_role_write) {
     return { json: { error: req.__("Not authorized") } };
   }
@@ -1010,7 +1043,8 @@ module.exports = {
   viewtemplates: [
     {
       name: "Calendar",
-      description: "Displays items on a calendar, with options for month, week, agenda, and others.",
+      description:
+        "Displays items on a calendar, with options for month, week, agenda, and others.",
       display_state_form: false,
       get_state_fields,
       configuration_workflow,
