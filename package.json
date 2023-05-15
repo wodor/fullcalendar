@@ -1,6 +1,6 @@
 {
   "name": "@saltcorn/fullcalendar",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "Calendar view plugin",
   "main": "index.js",
   "dependencies": {
