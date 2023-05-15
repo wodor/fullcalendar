@@ -815,7 +815,7 @@ const run = async (
         );
       }
     },
-    eventAfterAllRender: apply_showif,
+    viewDidMount: apply_showif,
     eventClick: (info) => {
       if (expandInPopup && info.event.url) {
         info.jsEvent.preventDefault(); // don't let the browser navigate
