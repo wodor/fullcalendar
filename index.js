@@ -618,6 +618,15 @@ const run = async (
   }`
       : ""
   }
+  var applyShowifRequested = false;
+  function requestApplyShowif() {
+    if(applyShowifRequested) return;
+    applyShowifRequested = true;
+    setTimeout(function() { 
+      applyShowifRequested = false;
+      apply_showif();
+    }, 200)
+  }
   var calendar = new FullCalendar.Calendar(calendarEl, {
     eventContent: function(arg) {
       if (!arg.event.extendedProps?.eventHtml) return;
@@ -815,7 +824,7 @@ const run = async (
         );
       }
     },
-    viewDidMount: apply_showif,
+    eventDidMount: requestApplyShowif,
     eventClick: (info) => {
       if (expandInPopup && info.event.url) {
         info.jsEvent.preventDefault(); // don't let the browser navigate
