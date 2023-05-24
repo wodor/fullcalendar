@@ -21,15 +21,13 @@ You can also specify an edit view to create new events and a show/edit view to d
 ## Calendar views
 When setting up a calendar, you will have the option to specify different view options such as month, week, day, list, etc. You can use any of the default options listed in the "views" section of the [fullcalendar documentation](https://fullcalendar.io/docs).
 
-Advanced users can specify their own [views object](https://fullcalendar.io/docs/custom-view-with-settings). You can use your custom views in the other fields when setting up your calendar.
+Advanced users can specify their own [views object](https://fullcalendar.io/docs/custom-view-with-settings). You can use your custom views in the other fields when setting up your calendar. This will be appended to the inside of object under `views`
 
 Example of a custom views object:
 ```
-views: {
   timeGridFourDay: {
     type: 'timeGrid',
     duration: { days: 4 },
     buttonText: '4 day',
   },
-}
 ```
