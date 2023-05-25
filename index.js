@@ -864,7 +864,7 @@ const run = async (
     views: {
       dayGridWeek: dayGridWeekOpts,
       timeGridWeek: timeGridWeekOpts,
-      ${custom_calendar_views ? custom_calendar_views + "," : ""},
+      ${custom_calendar_views ? custom_calendar_views + "," : ""}
     },
     
   });
