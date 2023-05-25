@@ -866,7 +866,6 @@ const run = async (
       timeGridWeek: timeGridWeekOpts,
       ${custom_calendar_views ? custom_calendar_views + "," : ""}
     },
-    
   });
   calendar.render();`)
     ),
