@@ -657,7 +657,7 @@ const run = async (
       right: '${calendar_view_options}',
     },
     navLinks: true,
-    initialView: '${initialView}'
+    initialView: '${initialView}',
     nowIndicator: ${nowIndicator},
     weekNumbers: ${weekNumbers},
     eventColor: '${default_event_color}',
