@@ -25,9 +25,10 @@ Advanced users can specify their own [views object](https://fullcalendar.io/docs
 
 Example of a custom views object:
 ```
-  timeGridFourDay: {
+  myView: {
     type: 'timeGrid',
-    duration: { days: 4 },
-    buttonText: '4 day',
-  },
+    duration: { weeks: 1 },
+    buttonText: 'My View',
+    slotDuration: '00:15:00',
+  }
 ```
